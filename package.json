@@ -1,45 +1,84 @@
 {
-  "name": "configurator-app",
+  "name": "midi-configurator",
   "version": "1.0.0",
-  "description": "Desktop aplikacija za prilagođavanje sa Flask backend-om",
-  "main": "src/main.js",
+  "description": "Desktop aplikacija za konfiguraciju MIDI kontrolera",
+  "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "concurrently \"npm run flask\" \"npm run electron-dev\"",
-    "electron-dev": "wait-on http://localhost:5000 && electron .",
-    "flask": "cd backend && python app.py",
+    "dev": "NODE_ENV=development electron .",
     "build": "electron-builder",
-    "dist": "electron-builder --publish=never"
+    "build-win": "electron-builder --win",
+    "build-mac": "electron-builder --mac",
+    "build-linux": "electron-builder --linux",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "install-backend": "cd backend && pip install -r requirements.txt",
+    "setup": "npm install && npm run install-backend"
   },
-  "keywords": ["electron", "flask", "desktop", "configurator"],
-  "author": "Your Name",
+  "keywords": [
+    "midi",
+    "configurator",
+    "desktop",
+    "electron",
+    "music"
+  ],
+  "author": "MIDI Configurator Team",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^26.0.0",
-    "electron-builder": "^24.0.0",
-    "concurrently": "^8.0.0",
-    "wait-on": "^7.0.0"
+    "electron": "^25.3.0",
+    "electron-builder": "^24.6.3"
   },
   "dependencies": {
-    "axios": "^1.4.0"
+    "electron-squirrel-startup": "^1.0.0"
   },
   "build": {
-    "appId": "com.yourcompany.configurator-app",
-    "productName": "Configurator App",
+    "appId": "com.midiconfigurator.app",
+    "productName": "MIDI Configurator",
     "directories": {
       "output": "dist"
     },
     "files": [
-      "src/**/*",
+      "main.js",
+      "preload.js",
+      "backend/**/*",
       "frontend/**/*",
-      "node_modules/**/*"
+      "assets/**/*",
+      "package.json"
     ],
-    "extraFiles": [
+    "extraResources": [
       {
-        "from": "backend",
-        "to": "backend",
-        "filter": ["**/*", "!__pycache__", "!*.pyc"]
+        "from": "backend/",
+        "to": "backend/"
       }
-    ]
-  }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico",
+      "publisherName": "MIDI Configurator"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.music"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icon.png",
+      "category": "Audio"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nano-cortex-midi-control/configurator-app.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nano-cortex-midi-control/configurator-app/issues"
+  },
+  "homepage": "https://github.com/nano-cortex-midi-control/configurator-app#readme"
 }

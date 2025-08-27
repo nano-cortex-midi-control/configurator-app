@@ -1,31 +1,32 @@
 #!/bin/bash
 
-# Skripta za pokretanje Configurator aplikacije
+# MIDI Configurator Startup Script
+# Ovaj script pokreće backend i frontend
 
-echo "🚀 Pokretanje Configurator App..."
+echo "=== MIDI Configurator ==="
+echo "Pokretanje aplikacije..."
 
-# Proverava da li su instalirane Node.js dependencies
-if [ ! -d "node_modules" ]; then
-    echo "📦 Instaliram Node.js dependencies..."
-    npm install
+# Proverava da li je python/node instalirano
+if ! command -v python3 &> /dev/null; then
+    echo "❌ Python3 nije instaliran!"
+    exit 1
 fi
 
-# Proverava da li je kreiran Python virtual environment
-if [ ! -d ".venv" ]; then
-    echo "🐍 Kreiram Python virtual environment..."
-    python3 -m venv .venv
+if ! command -v node &> /dev/null; then
+    echo "❌ Node.js nije instaliran!"
+    exit 1
 fi
 
-# Aktivira virtual environment i instalira Python dependencies
-echo "📚 Instaliram Python dependencies..."
-source .venv/bin/activate
-pip install -r backend/requirements.txt
+# Prelazi u direktorijum aplikacije
+cd "$(dirname "$0")"
 
-echo "✅ Sve je spremno!"
-echo "🌐 Flask server će biti pokrenut na http://localhost:5000"
-echo "🖥️ Electron aplikacija će biti pokrenuta automatski"
-echo ""
-echo "Za zatvaranje aplikacije koristite Ctrl+C"
+# Aktivira virtual environment
+if [ ! -d "venv" ]; then
+    echo "📦 Pokretajte ./setup.sh da instalirate dependencies!"
+    exit 1
+fi
 
-# Pokreće aplikaciju
-npm run dev
+echo "🚀 Pokretanje Electron aplikacije..."
+
+# Pokreni Electron aplikaciju (koja će pokrenuti i backend)
+npm start

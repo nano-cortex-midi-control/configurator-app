@@ -1,65 +1,52 @@
-# Ignorisanje Node.js dependencies
+# Dependencies
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+backend/__pycache__/
+backend/*.pyc
 
-# Ignorisanje Python
+# Database
+backend/database.db
+*.sqlite
+*.sqlite3
+
+# Build outputs
+dist/
+build/
+out/
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Virtual environments
-venv/
 env/
+venv/
 ENV/
 
-# IDE fajlovi
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS fajlovi
-.DS_Store
-Thumbs.db
-
 # Electron
-out/
-dist/
+*.asar
 
-# Log fajlovi
-*.log
-
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Data fajlovi (opciono - možda želite da ih zadržite)
-# backend/data/
-
-# Temporary fajlovi
+# Temporary files
 *.tmp
 *.temp

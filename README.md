@@ -1,230 +1,209 @@
-# MIDI Configurator App
+# MIDI Configurator Desktop App
 
-Desktop aplikacija za konfiguraciju MIDI kontrolera napravljena sa Electron frontend-om i Flask backend-om.
-
-## Karakteristike
-
-- 🖥️ **Desktop aplikacija** - Koristi Electron za native desktop interfejs
-- 🎵 **MIDI kontrola** - Mapiranje tastera na MIDI komande
-- 🐍 **Flask backend** - Python Flask server za API i komunikaciju sa uređajem
-- 💾 **SQLite baza** - Lokalna baza podataka za komande i mapiranja
-- 🎨 **Moderni UI** - Responzivni dizajn sa tab navigacijom
-- 🔌 **USB komunikacija** - Direktna komunikacija sa MIDI uređajem
-- ⚡ **Real-time konfiguracija** - Trenutno slanje konfiguracije na uređaj
+Desktop aplikacija za konfiguraciju MIDI kontrolera izgrađena sa Electron i Flask backendom.
 
 ## Funkcionalnosti
 
-### Config Tab
-- **Upravljanje komandama**: Dodavanje, editovanje i brisanje MIDI komandi
-- **Komande se sastoje od**: Naziv (string) i Vrednost (INT 0-65535)
-- **Lista komandi**: Pregled svih dostupnih komandi
+- **Config Tab**: Upravljanje komandama (dodavanje, editovanje, brisanje)
+- **Map Tab**: Mapiranje komandi na 6 tastera
+- **SQLite baza**: Čuvanje komandi i mapiranja
+- **Desktop aplikacija**: Electron wrapper za cross-platform podršku
 
-### Map Tab
-- **6 tastera** - Mapiranje komandi na 6 fizičkih tastera
-- **Vizuelni prikaz** - Krugovi predstavljaju tastere sa brojevima
-- **Dropdown selekcija** - Izbor komande za svaki taster
-- **Real-time preview** - Prikaz mapirane komande ispod svakog tastera
-
-### USB Management
-- **Auto-detekcija portova** - Automatsko otkrivanje dostupnih USB portova
-- **Port selekcija** - Dropdown meni za izbor USB porta
-- **Konfiguracija** - Slanje trenutnog mapiranja na uređaj klikom na KONFIGURISI
-
-## Struktura projekta
-
-```
-configurator-app/
-├── src/                    # Electron main proces
-│   ├── main.js            # Glavna Electron aplikacija
-│   └── preload.js         # Preload script za bezbednu komunikaciju
-├── frontend/              # Web frontend  
-│   ├── templates/
-│   │   └── index.html     # MIDI Configurator UI
-│   └── static/
-│       ├── css/
-│       │   └── style.css  # Stilovi za tabove i button grid
-│       └── js/
-│           └── app.js     # MIDI Configurator logika
-├── backend/               # Flask backend (ZA IMPLEMENTACIJU)
-│   ├── app.py            # Flask server sa MIDI API
-│   └── requirements.txt  # Python dependencies
-├── BACKEND_API.md        # API specifikacija za implementaciju
-├── package.json          # Node.js konfiguracija
-└── README.md
-```
-
-## Instalacija
+## Instalacija i pokretanje
 
 ### Preduslovi
 
-- Node.js (v16 ili noviji)
-- Python 3.8+
-- npm ili yarn
+- Node.js (v14 ili noviji)
+- Python 3.7 ili noviji
+- pip (Python package manager)
 
-### Korak 1: Kloniraj ili download projekat
+### 1. Kloniraj repozitorijum
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/nano-cortex-midi-control/configurator-app.git
 cd configurator-app
 ```
 
-### Korak 2: Instaliraj Node.js dependencies
+### 2. Instaliraj dependencies
 
 ```bash
+# Instaliraj Node.js dependencies
 npm install
-```
 
-### Korak 3: Implementiraj backend
-
-Backend API trenutno nije implementiran. Sledite instrukcije u `BACKEND_API.md` fajlu da implementirate:
-
-1. SQLite bazu podataka
-2. API endpoint-ove za komande
-3. USB port detekciju
-4. MIDI komunikaciju sa uređajem
-
-```bash
+# Instaliraj Python dependencies
 cd backend
 pip install -r requirements.txt
-# Implementiraj API endpoint-ove prema BACKEND_API.md
 cd ..
 ```
 
-## Pokretanje
+Ili koristi skraćenu komandu:
 
-### Development mode
+```bash
+npm run setup
+```
+
+### 3. Pokretanje u development modu
 
 ```bash
 npm run dev
 ```
 
-### Production mode
+### 4. Pokretanje u production modu
 
 ```bash
 npm start
 ```
 
-## Frontend API Pozivi
+## Build za distribuciju
 
-Frontend pravi sledeće API pozive koje backend treba da implementira:
+### Windows
 
-### Komande
-- `GET /api/commands` - Lista svih komandi
-- `POST /api/commands` - Kreiranje nove komande
-- `PUT /api/commands/{id}` - Ažuriranje komande
-- `DELETE /api/commands/{id}` - Brisanje komande
+```bash
+npm run build-win
+```
 
-### USB Portovi
-- `GET /api/usb-ports` - Lista dostupnih USB portova
+### macOS
 
-### Mapiranje tastera
-- `GET /api/button-mappings` - Trenutno mapiranje tastera
-- `POST /api/button-mappings` - Ažuriranje mapiranja
+```bash
+npm run build-mac
+```
 
-### Konfiguracija uređaja
-- `POST /api/configure` - Slanje konfiguracije na uređaj
+### Linux
 
-Detaljnu specifikaciju API-ja pogledajte u `BACKEND_API.md`.
+```bash
+npm run build-linux
+```
 
-## UI Komponente
-
-### Header
-- **Tab navigacija**: Config i Map tabovi
-- **USB port selekcija**: Dropdown za izbor porta
-- **KONFIGURISI dugme**: Slanje konfiguracije na uređaj
-
-### Config Tab
-- **Lista komandi**: Tabela sa naziv/vrednost/akcije
-- **Dodaj komandu**: Modal dialog za novu komandu
-- **Edit/Delete**: Akcije za postojeće komande
-
-### Map Tab
-- **6 tastera**: Vizuelni prikaz u 2x3 grid-u
-- **Krugovi sa brojevima**: Predstavljaju fizičke tastere
-- **Dropdown ispod**: Selekcija komande za svaki taster
-- **Live preview**: Prikaz naziva mapirane komande
-
-### Status Bar
-- **Connection status**: Indikator veze sa uređajem
-- **Command count**: Broj definisanih komandi  
-- **Mapped buttons**: Broj mapiranih tastera (X/6)
-
-## Izgradnja za distribuciju
+### Svi platformi
 
 ```bash
 npm run build
 ```
 
-ili
+Izgrađene aplikacije će se naći u `dist/` direktorijumu.
 
-```bash
-npm run dist
+## Struktura projekta
+
+```
+configurator-app/
+├── main.js                 # Electron main process
+├── preload.js             # Electron preload script
+├── package.json           # Node.js dependencies i build config
+├── backend/
+│   ├── app.py            # Flask backend server
+│   ├── requirements.txt  # Python dependencies
+│   └── database.db       # SQLite baza (kreirana automatski)
+├── frontend/
+│   ├── static/
+│   │   ├── css/
+│   │   │   └── style.css
+│   │   └── js/
+│   │       └── app.js
+│   └── templates/
+│       └── index.html
+└── assets/               # Ikone za aplikaciju (opciono)
 ```
 
-Ovo će kreirati distribuciju u `dist/` folderu.
+## API Dokumentacija
 
-## Konfiguracija
+### Komande
 
-### Electron
+- `GET /api/commands` - Dohvati sve komande
+- `POST /api/commands` - Kreiraj novu komandu
+- `PUT /api/commands/<id>` - Ažuriraj komandu
+- `DELETE /api/commands/<id>` - Obriši komandu
 
-Electron konfiguracija se nalazi u `src/main.js`. Možete prilagoditi:
-- Veličinu prozora
-- Menu opcije
-- Ikonce
-- Bezbednosne postavke
+### Mapiranje tastera
 
-### Flask
+- `GET /api/button-mappings` - Dohvati mapiranje tastera
+- `POST /api/button-mappings` - Ažuriraj mapiranje tastera
 
-Flask konfiguracija se nalazi u `backend/app.py`. Možete prilagoditi:
-- Port servera
-- CORS postavke
-- Lokaciju data fajlova
-- Secret key
+### Konfiguracija
 
-## Dodavanje novih funkcionalnosti
+- `POST /api/configuration` - Vrati kompletnu konfiguraciju za slanje na uređaj
 
-### Backend (Flask)
+### USB Portovi
 
-1. Dodaj novi endpoint u `backend/app.py`
-2. Implementiraj logiku
-3. Testiraj preko `/health` endpoint-a
+- `GET /api/usb-ports` - Dohvati dostupne USB portove
 
-### Frontend (Electron)
+## Korišćenje
 
-1. Dodaj novi UI u `frontend/templates/index.html`
-2. Dodaj stilove u `frontend/static/css/style.css`
-3. Implementiraj logiku u `frontend/static/js/app.js`
-4. Integriši sa Electron API-jem preko `src/preload.js`
+1. **Config tab**:
+   - Kliknite "Dodaj komandu" da dodate novu komandu
+   - Unesite naziv (string) i vrednost (integer 0-65535)
+   - Koristite Edit/Delete dugmad za upravljanje postojećim komandama
 
-## Troubleshooting
+2. **Map tab**:
+   - Izaberite komandu za svaki od 6 tastera
+   - Mapiranje se automatski čuva
 
-### Flask server se ne pokreće
-
-- Proverite da li je Python instaliran
-- Proverite da li su instalirane sve dependencies iz `requirements.txt`
-- Proverite da li je port 5000 slobodan
-
-### Electron aplikacija se ne pokreće
-
-- Proverite da li je Node.js instaliran
-- Instalirajte dependencies sa `npm install`
-- Proverite da li Flask server radi na portu 5000
-
-### Podaci se ne čuvaju
-
-- Proverite da li postoji `backend/data/` direktorijum
-- Proverite dozvole za pisanje u direktorijum
+3. **Konfiguracija**:
+   - Izaberite USB port
+   - Kliknite "KONFIGURISI" da pošaljete konfiguraciju na uređaj
 
 ## Razvoj
 
-Za doprinošenje projektu:
+### Backend development
 
-1. Fork repository
-2. Kreiraj feature branch
-3. Implementiraj promene
-4. Testiraj
-5. Pošalji pull request
+Backend je Flask aplikacija koja:
+- Služi frontend fajlove
+- Upravlja SQLite bazom
+- Pruža REST API endpoints
+
+Za razvoj backenda možete pokrenuti direktno:
+
+```bash
+cd backend
+python app.py
+```
+
+Server će biti dostupan na `http://localhost:5001`
+
+### Frontend development
+
+Frontend koristi vanilla JavaScript i komunicira sa backend API-jem.
+
+### Database schema
+
+```sql
+-- Tabela komandi
+CREATE TABLE commands (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    value INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela mapiranja tastera
+CREATE TABLE button_mappings (
+    button_number INTEGER PRIMARY KEY CHECK(button_number >= 1 AND button_number <= 6),
+    command_id INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (command_id) REFERENCES commands (id) ON DELETE SET NULL
+);
+```
+
+## Troubleshooting
+
+### Backend se ne pokreće
+
+1. Proverite da li je Python instaliran: `python --version`
+2. Proverite da li su dependencies instalirani: `pip list`
+3. Pokrenite backend ručno: `cd backend && python app.py`
+
+### Electron se ne pokreće
+
+1. Proverite da li je Node.js instaliran: `node --version`
+2. Proverite da li su dependencies instalirani: `npm list`
+3. Očistite cache: `rm -rf node_modules && npm install`
+
+### Database greške
+
+1. Obriši database.db fajl da se kreira ponovo
+2. Restartuj aplikaciju
 
 ## Licenca
 
-MIT License - pogledaj LICENSE fajl za detalje.
+MIT License - videti LICENSE fajl za detalje.

@@ -1,291 +1,498 @@
-from flask import Flask, render_template, jsonify, request
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+MIDI Configurator Backend
+Flask server sa SQLite bazom za upravljanje komandama i mapiranjima.
+"""
+
+from flask import Flask, request, jsonify, send_from_directory, render_template_string
 from flask_cors import CORS
 import sqlite3
 import os
+import logging
 from datetime import datetime
 
-app = Flask(__name__, template_folder='../frontend/templates', static_folder='../frontend/static')
-CORS(app)  # Omogućava CORS za Electron
+# Kreiranje Flask aplikacije
+app = Flask(__name__, 
+           static_folder='../frontend/static',
+           template_folder='../frontend/templates')
+CORS(app)  # Omogući CORS za frontend
 
 # Konfiguracija
-app.config['SECRET_KEY'] = 'your-secret-key-here'
-app.config['DATABASE'] = os.path.join(os.path.dirname(__file__), 'midi_config.db')
+DATABASE_PATH = os.path.join(os.path.dirname(__file__), 'database.db')
+LOG_LEVEL = logging.INFO
 
-def init_db():
-    """Inicijalizuje SQLite bazu podataka"""
-    conn = sqlite3.connect(app.config['DATABASE'])
-    cursor = conn.cursor()
+# Logging setup
+logging.basicConfig(
+    level=LOG_LEVEL,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+class DatabaseManager:
+    """Klasa za upravljanje SQLite bazom podataka."""
     
-    # Commands tabela
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS commands (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE,
-            value INTEGER NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
+    def __init__(self, db_path):
+        self.db_path = db_path
+        self.init_database()
     
-    # Button mappings tabela
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS button_mappings (
-            button_number INTEGER PRIMARY KEY CHECK (button_number >= 1 AND button_number <= 6),
-            command_id INTEGER,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (command_id) REFERENCES commands(id) ON DELETE SET NULL
-        )
-    ''')
+    def init_database(self):
+        """Inicijalizuj tabele u bazi podataka."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            
+            # Tabela za komande
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS commands (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL UNIQUE,
+                    value INTEGER NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            # Tabela za mapiranje tastera
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS button_mappings (
+                    button_number INTEGER PRIMARY KEY CHECK(button_number >= 1 AND button_number <= 6),
+                    command_id INTEGER,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (command_id) REFERENCES commands (id) ON DELETE SET NULL
+                )
+            ''')
+            
+            # Inicijalizuj mapiranje tastera ako ne postoji
+            for i in range(1, 7):
+                cursor.execute('''
+                    INSERT OR IGNORE INTO button_mappings (button_number, command_id) 
+                    VALUES (?, NULL)
+                ''', (i,))
+            
+            conn.commit()
+            logger.info("Baza podataka je inicijalizovana")
     
-    conn.commit()
-    conn.close()
+    def get_connection(self):
+        """Vrati konekciju ka bazi podataka."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row  # Omogući pristup kolonama po imenu
+        return conn
 
-def get_db_connection():
-    """Kreira konekciju sa bazom podataka"""
-    conn = sqlite3.connect(app.config['DATABASE'])
-    conn.row_factory = sqlite3.Row
-    return conn
+# Globalna instanca database managera
+db_manager = DatabaseManager(DATABASE_PATH)
 
-# Health check endpoint
-@app.route('/health')
-def health_check():
-    return jsonify({'status': 'ok', 'timestamp': datetime.now().isoformat()})
+# Frontend rute
 
-# Glavna stranica
 @app.route('/')
 def index():
-    return render_template('index.html')
+    """Serviraj glavni HTML fajl."""
+    try:
+        # Definiraj apsolutnu putanju do template fajla
+        template_path = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'templates', 'index.html')
+        template_path = os.path.abspath(template_path)
+        
+        with open(template_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        
+        # Replace Flask template syntax with static paths for Electron
+        html_content = html_content.replace(
+            "{{ url_for('static', filename='css/style.css') }}", 
+            "/static/css/style.css"
+        )
+        html_content = html_content.replace(
+            "{{ url_for('static', filename='js/app.js') }}", 
+            "/static/js/app.js"
+        )
+        
+        return render_template_string(html_content)
+    except Exception as e:
+        logger.error(f"Greška pri učitavanju index.html: {e}")
+        return f"Greška pri učitavanju aplikacije: {e}", 500
 
-# =============================================================================
-# COMMANDS API - Implementirajte ove endpoint-ove
-# =============================================================================
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    """Serviraj statičke fajlove."""
+    static_path = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'static')
+    static_path = os.path.abspath(static_path)
+    return send_from_directory(static_path, filename)
+
+# API rute za komande
 
 @app.route('/api/commands', methods=['GET'])
 def get_commands():
-    """
-    TODO: Implementiraj - Vraća sve komande iz baze
+    """Vrati sve komande iz baze."""
+    try:
+        with db_manager.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT id, name, value, created_at, updated_at 
+                FROM commands 
+                ORDER BY name ASC
+            ''')
+            commands = [dict(row) for row in cursor.fetchall()]
+            
+            logger.info(f"Vraćeno {len(commands)} komandi")
+            return jsonify({
+                'success': True,
+                'data': commands
+            })
     
-    Trebate:
-    1. Napraviti konekciju sa bazom
-    2. Izvršiti SELECT query
-    3. Vratiti JSON odgovor
-    
-    Format odgovora: {"success": True, "data": [...]}
-    """
-    # VAŠA IMPLEMENTACIJA OVDE
-    return jsonify({
-        'success': False,
-        'error': 'Endpoint nije implementiran'
-    }), 501
+    except Exception as e:
+        logger.error(f"Greška pri dohvatanju komandi: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/commands', methods=['POST'])
 def create_command():
-    """
-    TODO: Implementiraj - Kreira novu komandu
+    """Kreiraj novu komandu."""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'Nedostaju podaci'
+            }), 400
+        
+        name = data.get('name', '').strip()
+        value = data.get('value')
+        
+        # Validacija
+        if not name:
+            return jsonify({
+                'success': False,
+                'error': 'Naziv komande je obavezan'
+            }), 400
+        
+        if not isinstance(value, int) or value < 0 or value > 65535:
+            return jsonify({
+                'success': False,
+                'error': 'Vrednost mora biti broj između 0 i 65535'
+            }), 400
+        
+        with db_manager.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO commands (name, value) 
+                VALUES (?, ?)
+            ''', (name, value))
+            
+            command_id = cursor.lastrowid
+            conn.commit()
+            
+            logger.info(f"Kreirana nova komanda: {name} (ID: {command_id})")
+            return jsonify({
+                'success': True,
+                'data': {
+                    'id': command_id,
+                    'name': name,
+                    'value': value
+                }
+            })
     
-    Request body: {"name": "Command Name", "value": 123}
+    except sqlite3.IntegrityError:
+        return jsonify({
+            'success': False,
+            'error': 'Komanda sa tim nazivom već postoji'
+        }), 400
     
-    Trebate:
-    1. Validirati podatke
-    2. Proveriti da li komanda već postoji
-    3. Dodati u bazu
-    4. Vratiti kreiran objekat
-    """
-    # VAŠA IMPLEMENTACIJA OVDE
-    return jsonify({
-        'success': False,
-        'error': 'Endpoint nije implementiran'
-    }), 501
+    except Exception as e:
+        logger.error(f"Greška pri kreiranju komande: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/commands/<int:command_id>', methods=['PUT'])
 def update_command(command_id):
-    """
-    TODO: Implementiraj - Ažurira postojeću komandu
-    """
-    # VAŠA IMPLEMENTACIJA OVDE
-    return jsonify({
-        'success': False,
-        'error': 'Endpoint nije implementiran'
-    }), 501
+    """Ažuriraj postojeću komandu."""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'Nedostaju podaci'
+            }), 400
+        
+        name = data.get('name', '').strip()
+        value = data.get('value')
+        
+        # Validacija
+        if not name:
+            return jsonify({
+                'success': False,
+                'error': 'Naziv komande je obavezan'
+            }), 400
+        
+        if not isinstance(value, int) or value < 0 or value > 65535:
+            return jsonify({
+                'success': False,
+                'error': 'Vrednost mora biti broj između 0 i 65535'
+            }), 400
+        
+        with db_manager.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE commands 
+                SET name = ?, value = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (name, value, command_id))
+            
+            if cursor.rowcount == 0:
+                return jsonify({
+                    'success': False,
+                    'error': 'Komanda nije pronađena'
+                }), 404
+            
+            conn.commit()
+            
+            logger.info(f"Ažurirana komanda: {name} (ID: {command_id})")
+            return jsonify({
+                'success': True,
+                'data': {
+                    'id': command_id,
+                    'name': name,
+                    'value': value
+                }
+            })
+    
+    except sqlite3.IntegrityError:
+        return jsonify({
+            'success': False,
+            'error': 'Komanda sa tim nazivom već postoji'
+        }), 400
+    
+    except Exception as e:
+        logger.error(f"Greška pri ažuriranju komande: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/commands/<int:command_id>', methods=['DELETE'])
 def delete_command(command_id):
-    """
-    TODO: Implementiraj - Briše komandu
-    """
-    # VAŠA IMPLEMENTACIJA OVDE
-    return jsonify({
-        'success': False,
-        'error': 'Endpoint nije implementiran'
-    }), 501
-
-# =============================================================================
-# USB PORTS API - Implementirajte ove endpoint-ove
-# =============================================================================
-
-@app.route('/api/usb-ports', methods=['GET'])
-def get_usb_ports():
-    """
-    TODO: Implementiraj - Vraća dostupne USB portove
+    """Obriši komandu iz baze."""
+    try:
+        with db_manager.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM commands WHERE id = ?', (command_id,))
+            
+            if cursor.rowcount == 0:
+                return jsonify({
+                    'success': False,
+                    'error': 'Komanda nije pronađena'
+                }), 404
+            
+            conn.commit()
+            
+            logger.info(f"Obrisana komanda sa ID: {command_id}")
+            return jsonify({
+                'success': True,
+                'message': 'Komanda je obrisana'
+            })
     
-    Trebate:
-    1. Koristiti serial.tools.list_ports za otkrivanje portova
-    2. Filtrirati relevantne portove
-    3. Vratiti listu portova
-    
-    Format: {"success": True, "data": [{"id": "COM1", "name": "..."}]}
-    """
-    # PRIMER IMPLEMENTACIJE:
-    # import serial.tools.list_ports
-    # ports = []
-    # for port in serial.tools.list_ports.comports():
-    #     ports.append({
-    #         'id': port.device,
-    #         'name': f"{port.device} - {port.description}",
-    #         'description': port.description,
-    #         'is_available': True
-    #     })
-    # return jsonify({'success': True, 'data': ports})
-    
-    # FALLBACK ZA TESTIRANJE:
-    return jsonify({
-        'success': True,
-        'data': [
-            {'id': 'COM1', 'name': 'COM1 - Test MIDI Device'},
-            {'id': 'COM3', 'name': 'COM3 - Arduino Uno'},
-            {'id': '/dev/ttyUSB0', 'name': '/dev/ttyUSB0 - USB Serial Device'}
-        ]
-    })
+    except Exception as e:
+        logger.error(f"Greška pri brisanju komande: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
-# =============================================================================
-# BUTTON MAPPINGS API - Implementirajte ove endpoint-ove
-# =============================================================================
+# API rute za mapiranje tastera
 
 @app.route('/api/button-mappings', methods=['GET'])
 def get_button_mappings():
-    """
-    TODO: Implementiraj - Vraća trenutno mapiranje dugmića
+    """Vrati mapiranje tastera."""
+    try:
+        with db_manager.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT button_number, command_id 
+                FROM button_mappings 
+                WHERE command_id IS NOT NULL
+                ORDER BY button_number ASC
+            ''')
+            mappings = {str(row['button_number']): row['command_id'] for row in cursor.fetchall()}
+            
+            logger.info(f"Vraćeno mapiranje za {len(mappings)} tastera")
+            return jsonify({
+                'success': True,
+                'data': mappings
+            })
     
-    Format: {"success": True, "data": {"1": 1, "2": 3, "4": 2}}
-    """
-    # VAŠA IMPLEMENTACIJA OVDE
-    return jsonify({
-        'success': True,
-        'data': {}  # Prazno mapiranje za početak
-    })
+    except Exception as e:
+        logger.error(f"Greška pri dohvatanju mapiranja: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/button-mappings', methods=['POST'])
 def update_button_mappings():
-    """
-    TODO: Implementiraj - Ažurira mapiranje dugmića
-    
-    Request body: {"1": 1, "2": 3, "3": null, "4": 2}
-    null vrednost znači da se mapiranje uklanja
-    """
-    # VAŠA IMPLEMENTACIJA OVDE
-    return jsonify({
-        'success': False,
-        'error': 'Endpoint nije implementiran'
-    }), 501
-
-# =============================================================================
-# DEVICE CONFIGURATION API - Implementirajte ovaj endpoint
-# =============================================================================
-
-@app.route('/api/configure', methods=['POST'])
-def configure_device():
-    """
-    TODO: Implementiraj - Šalje konfiguraciju na MIDI uređaj
-    
-    Request body: {
-        "usb_port": "COM1",
-        "button_mappings": {"1": 1, "2": 3, "4": 2}
-    }
-    
-    Trebate:
-    1. Validirati podatke
-    2. Dobiti komande iz baze na osnovu mapping-a
-    3. Uspostaviti serijsku konekciju
-    4. Poslati komande na uređaj
-    5. Vratiti rezultat
-    
-    PRIMER IMPLEMENTACIJE:
-    import serial
-    
+    """Ažuriraj mapiranje tastera."""
     try:
-        ser = serial.Serial(data['usb_port'], 9600, timeout=2)
+        data = request.get_json()
         
-        for button, command_id in data['button_mappings'].items():
-            # Dobij komandu iz baze
-            command = get_command_by_id(command_id)
-            if command:
-                # Pošalji komandu na uređaj (format zavisi od protokola)
-                message = f"SET_BUTTON:{button}:{command['value']}\n"
-                ser.write(message.encode())
-                
-        ser.close()
-        return jsonify({'success': True, 'message': 'Configuration sent'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-    """
-    data = request.get_json()
+        if not isinstance(data, dict):
+            return jsonify({
+                'success': False,
+                'error': 'Neispravni podaci'
+            }), 400
+        
+        with db_manager.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Resetuj sva mapiranja
+            cursor.execute('UPDATE button_mappings SET command_id = NULL')
+            
+            # Postaviti nova mapiranja
+            for button_num, command_id in data.items():
+                try:
+                    button_num = int(button_num)
+                    command_id = int(command_id) if command_id else None
+                    
+                    if 1 <= button_num <= 6:
+                        cursor.execute('''
+                            UPDATE button_mappings 
+                            SET command_id = ?, updated_at = CURRENT_TIMESTAMP
+                            WHERE button_number = ?
+                        ''', (command_id, button_num))
+                except (ValueError, TypeError):
+                    continue
+            
+            conn.commit()
+            
+            logger.info("Mapiranje tastera je ažurirano")
+            return jsonify({
+                'success': True,
+                'message': 'Mapiranje tastera je ažurirano'
+            })
     
-    if not data or 'usb_port' not in data or 'button_mappings' not in data:
+    except Exception as e:
+        logger.error(f"Greška pri ažuriranju mapiranja: {e}")
         return jsonify({
             'success': False,
-            'error': 'Nedostaju obavezni podaci'
-        }), 400
+            'error': str(e)
+        }), 500
+
+@app.route('/api/configuration', methods=['POST'])
+def send_configuration():
+    """Vrati konfiguraciju za slanje na uređaj."""
+    try:
+        data = request.get_json()
+        usb_port = data.get('usbPort')
+        
+        if not usb_port:
+            return jsonify({
+                'success': False,
+                'error': 'USB port je obavezan'
+            }), 400
+        
+        with db_manager.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT 
+                    bm.button_number,
+                    c.name as command_name,
+                    c.value as command_value
+                FROM button_mappings bm
+                LEFT JOIN commands c ON bm.command_id = c.id
+                WHERE bm.command_id IS NOT NULL
+                ORDER BY bm.button_number ASC
+            ''')
+            
+            configuration = []
+            for row in cursor.fetchall():
+                configuration.append({
+                    'button': row['button_number'],
+                    'command_name': row['command_name'],
+                    'command_value': row['command_value']
+                })
+            
+            result = {
+                'usb_port': usb_port,
+                'button_mappings': configuration,
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            logger.info(f"Konfiguracija poslana za USB port: {usb_port}")
+            return jsonify({
+                'success': True,
+                'data': result
+            })
     
-    # SIMULACIJA SLANJA - zameniti sa pravom implementacijom
-    print(f"Simulacija slanja konfiguracije na {data['usb_port']}")
-    print(f"Button mappings: {data['button_mappings']}")
+    except Exception as e:
+        logger.error(f"Greška pri slanju konfiguracije: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# API rute za USB portove
+
+@app.route('/api/usb-ports', methods=['GET'])
+def get_usb_ports():
+    """Vrati dostupne USB portove."""
+    try:
+        # Mock podaci za USB portove - možete proširiti sa stvarnim detekcijama
+        usb_ports = [
+            {'id': 'COM1', 'name': 'COM1 - Arduino Uno'},
+            {'id': 'COM3', 'name': 'COM3 - MIDI Controller'},
+            {'id': '/dev/ttyUSB0', 'name': '/dev/ttyUSB0 - USB Serial'},
+            {'id': '/dev/ttyACM0', 'name': '/dev/ttyACM0 - Arduino'}
+        ]
+        
+        return jsonify({
+            'success': True,
+            'data': usb_ports
+        })
     
+    except Exception as e:
+        logger.error(f"Greška pri dohvatanju USB portova: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# Health check endpoint
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Health check endpoint."""
     return jsonify({
         'success': True,
-        'message': 'Konfiguracija je uspešno poslata (simulacija)',
-        'device_response': 'OK'
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat()
     })
 
-# =============================================================================
-# HELPER FUNKCIJE - Možete koristiti ove kao pomoć
-# =============================================================================
+# Error handlers
 
-def get_command_by_id(command_id):
-    """
-    Helper funkcija za dobijanje komande po ID-u
-    TODO: Implementiraj
-    """
-    conn = get_db_connection()
-    # Implementiraj query
-    conn.close()
-    return None
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({
+        'success': False,
+        'error': 'Endpoint not found'
+    }), 404
 
-def validate_command_data(data):
-    """
-    Helper funkcija za validaciju podataka komande
-    """
-    if not data:
-        return False, 'Nema podataka'
-    
-    if not data.get('name', '').strip():
-        return False, 'Naziv komande je obavezan'
-    
-    try:
-        value = int(data.get('value', 0))
-        if value < 0 or value > 65535:
-            return False, 'Vrednost mora biti između 0 i 65535'
-    except (TypeError, ValueError):
-        return False, 'Vrednost mora biti broj'
-    
-    return True, None
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({
+        'success': False,
+        'error': 'Internal server error'
+    }), 500
 
 if __name__ == '__main__':
-    # Inicijalizuj bazu podataka pri pokretanju
-    init_db()
-    print("=" * 60)
-    print("MIDI Configurator Backend")
-    print("=" * 60)
-    print("NAPOMENA: Backend API endpoint-ovi nisu implementirani!")
-    print("Pogledajte BACKEND_API.md za detaljne instrukcije.")
-    print("=" * 60)
-    app.run(host='localhost', port=5000, debug=True)
+    logger.info("Pokretanje MIDI Configurator Backend servera...")
+    logger.info(f"Baza podataka: {DATABASE_PATH}")
+    
+    # Pokretaj server
+    app.run(
+        host='127.0.0.1',
+        port=5001,
+        debug=True,
+        threaded=True
+    )

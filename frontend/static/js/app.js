@@ -111,7 +111,7 @@ class MIDIConfiguratorApp {
     // USB Port Management
     async loadUSBPorts() {
         try {
-            const response = await fetch('/api/usb-ports');
+            const response = await fetch('http://localhost:5001/api/usb-ports');
             const result = await response.json();
             
             if (result.success) {
@@ -147,7 +147,7 @@ class MIDIConfiguratorApp {
     async loadCommands() {
         try {
             this.showLoading(true);
-            const response = await fetch('/api/commands');
+            const response = await fetch('http://localhost:5001/api/commands');
             const result = await response.json();
             
             if (result.success) {
@@ -177,9 +177,11 @@ class MIDIConfiguratorApp {
     }
 
     renderCommands() {
+        console.log('🎨 Rendering commands:', this.commands);
         const container = document.getElementById('commandsList');
         
         if (this.commands.length === 0) {
+            console.log('📭 No commands to render');
             container.innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-list"></i>
@@ -193,6 +195,7 @@ class MIDIConfiguratorApp {
             return;
         }
 
+        console.log('📝 Rendering', this.commands.length, 'commands');
         container.innerHTML = this.commands.map(command => `
             <div class="command-item">
                 <div class="command-name">${this.escapeHtml(command.name)}</div>
@@ -272,8 +275,8 @@ class MIDIConfiguratorApp {
             this.showLoading(true);
             
             const url = this.currentEditingCommand 
-                ? `/api/commands/${this.currentEditingCommand}`
-                : '/api/commands';
+                ? `http://localhost:5001/api/commands/${this.currentEditingCommand}`
+                : 'http://localhost:5001/api/commands';
             const method = this.currentEditingCommand ? 'PUT' : 'POST';
 
             const response = await fetch(url, {
@@ -287,13 +290,16 @@ class MIDIConfiguratorApp {
             const result = await response.json();
 
             if (result.success) {
+                console.log('✅ Command saved successfully:', result);
                 this.showToast(
                     this.currentEditingCommand ? 'Komanda je ažurirana' : 'Komanda je dodana',
                     'success'
                 );
                 this.closeModal(document.getElementById('commandModal'));
+                console.log('🔄 Reloading commands after save...');
                 this.loadCommands();
             } else {
+                console.error('❌ Error saving command:', result.error);
                 this.showToast('Greška pri čuvanju komande: ' + result.error, 'error');
             }
         } catch (error) {
@@ -316,7 +322,7 @@ class MIDIConfiguratorApp {
 
         try {
             this.showLoading(true);
-            const response = await fetch(`/api/commands/${commandId}`, {
+            const response = await fetch(`http://localhost:5001/api/commands/${commandId}`, {
                 method: 'DELETE'
             });
 
@@ -346,7 +352,7 @@ class MIDIConfiguratorApp {
     // Button Mapping Management
     async loadButtonMappings() {
         try {
-            const response = await fetch('/api/button-mappings');
+            const response = await fetch('http://localhost:5001/api/button-mappings');
             const result = await response.json();
             
             if (result.success) {
@@ -397,6 +403,29 @@ class MIDIConfiguratorApp {
         
         this.updateStatusBar();
         this.updateConfigureButton();
+        
+        // Sačuvaj mappings na backend
+        this.saveButtonMappings();
+    }
+
+    async saveButtonMappings() {
+        try {
+            const response = await fetch('http://localhost:5001/api/button-mappings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(this.buttonMappings)
+            });
+
+            const result = await response.json();
+            
+            if (!result.success) {
+                console.error('Greška pri čuvanju mapiranja:', result.error);
+            }
+        } catch (error) {
+            console.error('Greška pri komunikaciji sa serverom:', error);
+        }
     }
 
     // Configuration Management
@@ -426,7 +455,7 @@ class MIDIConfiguratorApp {
 
         try {
             this.showLoading(true);
-            const response = await fetch('/api/configure', {
+            const response = await fetch('http://localhost:5001/api/configure', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
