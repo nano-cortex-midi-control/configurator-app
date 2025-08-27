@@ -191,7 +191,10 @@ class MIDIConfiguratorApp {
 
     async testUSBPort(portId) {
         try {
-            const response = await fetch('http://localhost:5001/api/usb-ports/test', {
+            this.showToast('Testiranje USB porta...', 'info');
+            
+            // Prvo testiraj osnovnu dostupnost
+            const basicResponse = await fetch('http://localhost:5001/api/usb-ports/test', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -199,17 +202,36 @@ class MIDIConfiguratorApp {
                 body: JSON.stringify({ portId })
             });
             
-            const result = await response.json();
+            const basicResult = await basicResponse.json();
             
-            if (result.success) {
-                const message = result.data.is_connected ? 
-                    `Port ${portId} je dostupan i spreman za korišćenje` :
-                    `Port ${portId} nije dostupan ili je zauzet`;
-                    
-                this.showToast(message, result.data.is_connected ? 'success' : 'warning');
-                return result.data.is_connected;
+            if (basicResult.success && basicResult.data.is_connected) {
+                // Ako je osnovno testiranje uspješno, testiraj serial komunikaciju
+                const serialResponse = await fetch('http://localhost:5001/api/usb-ports/test-serial', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ portId })
+                });
+                
+                const serialResult = await serialResponse.json();
+                
+                if (serialResult.success) {
+                    let message = `Port ${portId} je dostupan i spreman za korišćenje`;
+                    if (serialResult.data.device_response) {
+                        message += ` ✓ Uređaj odgovara: ${serialResult.data.device_response}`;
+                    } else {
+                        message += ` ✓ Serial komunikacija radi`;
+                    }
+                    this.showToast(message, 'success');
+                    return true;
+                } else {
+                    this.showToast(`Port ${portId} je dostupan ali serial komunikacija ne radi: ${serialResult.error}`, 'warning');
+                    return false;
+                }
             } else {
-                this.showToast('Greška pri testiranju porta: ' + result.error, 'error');
+                const message = `Port ${portId} nije dostupan ili je zauzet`;
+                this.showToast(message, 'warning');
                 return false;
             }
         } catch (error) {
@@ -546,13 +568,14 @@ class MIDIConfiguratorApp {
         }
 
         const configData = {
-            usb_port: this.selectedUSBPort,
-            button_mappings: this.buttonMappings
+            usbPort: this.selectedUSBPort
         };
 
         try {
             this.showLoading(true);
-            const response = await fetch('http://localhost:5001/api/configure', {
+            this.showToast('Slanje konfiguracije na uređaj...', 'info');
+            
+            const response = await fetch('http://localhost:5001/api/configuration', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -563,8 +586,18 @@ class MIDIConfiguratorApp {
             const result = await response.json();
 
             if (result.success) {
-                this.showToast('Konfiguracija je uspešno poslata na uređaj!', 'success');
+                let message = result.message || 'Konfiguracija je uspješno poslana na uređaj!';
+                
+                // Dodaj informaciju o odgovoru uređaja ako postoji
+                if (result.data && result.data.device_response) {
+                    message += ` Odgovor uređaja: ${result.data.device_response}`;
+                }
+                
+                this.showToast(message, 'success');
                 this.updateConnectionStatus(true);
+                
+                // Log detalje konfiguracije
+                console.log('Konfiguracija poslana:', result.data);
             } else {
                 this.showToast('Greška pri slanju konfiguracije: ' + result.error, 'error');
                 this.updateConnectionStatus(false);
