@@ -83,7 +83,7 @@ body {
 /* USB Selection */
 .usb-selection {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 0.5rem;
     color: white;
 }
@@ -93,6 +93,12 @@ body {
     white-space: nowrap;
 }
 
+.usb-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .usb-select {
     padding: 0.5rem 1rem;
     border: 1px solid rgba(255,255,255,0.3);
@@ -100,11 +106,31 @@ body {
     background: rgba(255,255,255,0.1);
     color: white;
     min-width: 200px;
+    flex: 1;
 }
 
 .usb-select option {
     background: #333;
     color: white;
+}
+
+.btn-small {
+    padding: 0.5rem;
+    min-width: auto;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-secondary {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: rgba(255,255,255,0.2);
 }
 
 /* Main Content */

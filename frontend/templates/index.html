@@ -27,9 +27,17 @@
                     <!-- USB Port Selection -->
                     <div class="usb-selection">
                         <label for="usbPortSelect">USB Port:</label>
-                        <select id="usbPortSelect" class="usb-select">
-                            <option value="">Učitavanje...</option>
-                        </select>
+                        <div class="usb-controls">
+                            <select id="usbPortSelect" class="usb-select">
+                                <option value="">Učitavanje...</option>
+                            </select>
+                            <button id="refreshUSBBtn" class="btn btn-secondary btn-small" title="Osvježi portove">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                            <button id="testUSBBtn" class="btn btn-secondary btn-small" title="Testiraj port" disabled>
+                                <i class="fas fa-plug"></i>
+                            </button>
+                        </div>
                     </div>
                     
                     <!-- Configure Button -->

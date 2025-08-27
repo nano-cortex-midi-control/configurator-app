@@ -34,6 +34,22 @@ class MIDIConfiguratorApp {
             this.selectedUSBPort = e.target.value;
             this.updateConfigureButton();
             this.updateStatusBar();
+            
+            // Enable/disable test button
+            const testBtn = document.getElementById('testUSBBtn');
+            testBtn.disabled = !e.target.value;
+        });
+
+        // USB refresh button
+        document.getElementById('refreshUSBBtn').addEventListener('click', () => {
+            this.loadUSBPorts();
+        });
+
+        // USB test button
+        document.getElementById('testUSBBtn').addEventListener('click', () => {
+            if (this.selectedUSBPort) {
+                this.testUSBPort(this.selectedUSBPort);
+            }
         });
 
         // Configure button
@@ -116,6 +132,18 @@ class MIDIConfiguratorApp {
             
             if (result.success) {
                 this.renderUSBPorts(result.data);
+                
+                // Prikaži poruku ako nema portova
+                if (result.message) {
+                    this.showToast(result.message, 'warning');
+                }
+                
+                // Automatski refresh USB portova svakih 5 sekundi
+                if (!this.usbRefreshInterval) {
+                    this.usbRefreshInterval = setInterval(() => {
+                        this.refreshUSBPorts();
+                    }, 5000);
+                }
             } else {
                 this.showToast('Greška pri učitavanju USB portova: ' + result.error, 'error');
             }
@@ -131,9 +159,78 @@ class MIDIConfiguratorApp {
         }
     }
 
+    async refreshUSBPorts() {
+        try {
+            const response = await fetch('http://localhost:5001/api/usb-ports');
+            const result = await response.json();
+            
+            if (result.success) {
+                const currentSelection = document.getElementById('usbPortSelect').value;
+                this.renderUSBPorts(result.data);
+                
+                // Pokušaj da zadržiš trenutnu selekciju
+                if (currentSelection) {
+                    const select = document.getElementById('usbPortSelect');
+                    const option = Array.from(select.options).find(opt => opt.value === currentSelection);
+                    if (option) {
+                        select.value = currentSelection;
+                    } else {
+                        // Port je nestao, resetuj selekciju
+                        this.selectedUSBPort = null;
+                        this.updateConfigureButton();
+                        this.updateStatusBar();
+                        this.showToast(`USB port ${currentSelection} više nije dostupan`, 'warning');
+                    }
+                }
+            }
+        } catch (error) {
+            // Tiho ignorišemo greške pri refresh-u
+            console.warn('USB port refresh failed:', error);
+        }
+    }
+
+    async testUSBPort(portId) {
+        try {
+            const response = await fetch('http://localhost:5001/api/usb-ports/test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ portId })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                const message = result.data.is_connected ? 
+                    `Port ${portId} je dostupan i spreman za korišćenje` :
+                    `Port ${portId} nije dostupan ili je zauzet`;
+                    
+                this.showToast(message, result.data.is_connected ? 'success' : 'warning');
+                return result.data.is_connected;
+            } else {
+                this.showToast('Greška pri testiranju porta: ' + result.error, 'error');
+                return false;
+            }
+        } catch (error) {
+            this.showToast('Greška pri komunikaciji sa serverom', 'error');
+            console.error('Greška:', error);
+            return false;
+        }
+    }
+
     renderUSBPorts(ports) {
         const select = document.getElementById('usbPortSelect');
         select.innerHTML = '<option value="">Izaberite USB port...</option>';
+        
+        if (ports.length === 0) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'Nema dostupnih portova';
+            option.disabled = true;
+            select.appendChild(option);
+            return;
+        }
         
         ports.forEach(port => {
             const option = document.createElement('option');
