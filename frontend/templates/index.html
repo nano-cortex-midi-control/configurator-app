@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI Configurator App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-music"></i> MIDI Configurator</h1>
+                <div class="header-controls">
+                    <!-- Tab Navigation -->
+                    <div class="tab-navigation">
+                        <button id="configTab" class="tab-btn active" data-tab="config">
+                            <i class="fas fa-list"></i> Config
+                        </button>
+                        <button id="mapTab" class="tab-btn" data-tab="map">
+                            <i class="fas fa-gamepad"></i> Map
+                        </button>
+                    </div>
+                    
+                    <!-- USB Port Selection -->
+                    <div class="usb-selection">
+                        <label for="usbPortSelect">USB Port:</label>
+                        <select id="usbPortSelect" class="usb-select">
+                            <option value="">Učitavanje...</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Configure Button -->
+                    <button id="configureBtn" class="btn btn-primary" disabled>
+                        <i class="fas fa-cog"></i> KONFIGURISI
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Config Tab Content -->
+            <section id="configContent" class="tab-content active">
+                <div class="config-panel">
+                    <div class="panel-header">
+                        <h2>Upravljanje komandama</h2>
+                        <button id="addCommandBtn" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Dodaj komandu
+                        </button>
+                    </div>
+                    
+                    <div class="commands-list">
+                        <div class="commands-header">
+                            <div class="command-name">Naziv komande</div>
+                            <div class="command-value">Vrednost (INT)</div>
+                            <div class="command-actions">Akcije</div>
+                        </div>
+                        <div id="commandsList" class="commands-container">
+                            <!-- Komande će biti učitane dinamički -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Map Tab Content -->
+            <section id="mapContent" class="tab-content">
+                <div class="map-panel">
+                    <div class="panel-header">
+                        <h2>Mapiranje tastera</h2>
+                        <div class="map-info">
+                            Izaberite komande za svaki od 6 tastera
+                        </div>
+                    </div>
+                    
+                    <div class="button-grid">
+                        <!-- Prvi red tastera -->
+                        <div class="button-row">
+                            <div class="button-mapping" data-button="1">
+                                <div class="button-circle">
+                                    <span class="button-number">1</span>
+                                </div>
+                                <div class="button-label" id="buttonLabel1">Nije mapiran</div>
+                                <select class="command-select" id="buttonSelect1" data-button="1">
+                                    <option value="">Izaberite komandu...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="button-mapping" data-button="2">
+                                <div class="button-circle">
+                                    <span class="button-number">2</span>
+                                </div>
+                                <div class="button-label" id="buttonLabel2">Nije mapiran</div>
+                                <select class="command-select" id="buttonSelect2" data-button="2">
+                                    <option value="">Izaberite komandu...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="button-mapping" data-button="3">
+                                <div class="button-circle">
+                                    <span class="button-number">3</span>
+                                </div>
+                                <div class="button-label" id="buttonLabel3">Nije mapiran</div>
+                                <select class="command-select" id="buttonSelect3" data-button="3">
+                                    <option value="">Izaberite komandu...</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Drugi red tastera -->
+                        <div class="button-row">
+                            <div class="button-mapping" data-button="4">
+                                <div class="button-circle">
+                                    <span class="button-number">4</span>
+                                </div>
+                                <div class="button-label" id="buttonLabel4">Nije mapiran</div>
+                                <select class="command-select" id="buttonSelect4" data-button="4">
+                                    <option value="">Izaberite komandu...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="button-mapping" data-button="5">
+                                <div class="button-circle">
+                                    <span class="button-number">5</span>
+                                </div>
+                                <div class="button-label" id="buttonLabel5">Nije mapiran</div>
+                                <select class="command-select" id="buttonSelect5" data-button="5">
+                                    <option value="">Izaberite komandu...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="button-mapping" data-button="6">
+                                <div class="button-circle">
+                                    <span class="button-number">6</span>
+                                </div>
+                                <div class="button-label" id="buttonLabel6">Nije mapiran</div>
+                                <select class="command-select" id="buttonSelect6" data-button="6">
+                                    <option value="">Izaberite komandu...</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal for Add/Edit Command -->
+    <div id="commandModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="commandModalTitle">Dodaj komandu</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="commandForm">
+                    <div class="form-group">
+                        <label for="commandName">Naziv komande:</label>
+                        <input type="text" id="commandName" name="name" required placeholder="npr. Start Recording">
+                    </div>
+                    <div class="form-group">
+                        <label for="commandValue">Vrednost (INT):</label>
+                        <input type="number" id="commandValue" name="value" required placeholder="npr. 123" min="0" max="65535">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="saveCommandBtn" class="btn btn-primary">Sačuvaj</button>
+                <button class="btn btn-secondary modal-close">Otkaži</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Information -->
+    <div id="statusBar" class="status-bar">
+        <div class="status-item">
+            <span id="connectionStatus"><i class="fas fa-circle text-danger"></i> Nije povezano</span>
+        </div>
+        <div class="status-item">
+            <span id="commandCount">Komande: 0</span>
+        </div>
+        <div class="status-item">
+            <span id="mappedButtons">Mapirano: 0/6</span>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Učitavanje...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

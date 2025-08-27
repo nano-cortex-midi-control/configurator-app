@@ -1,0 +1,45 @@
+{
+  "name": "configurator-app",
+  "version": "1.0.0",
+  "description": "Desktop aplikacija za prilagođavanje sa Flask backend-om",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "concurrently \"npm run flask\" \"npm run electron-dev\"",
+    "electron-dev": "wait-on http://localhost:5000 && electron .",
+    "flask": "cd backend && python app.py",
+    "build": "electron-builder",
+    "dist": "electron-builder --publish=never"
+  },
+  "keywords": ["electron", "flask", "desktop", "configurator"],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^26.0.0",
+    "electron-builder": "^24.0.0",
+    "concurrently": "^8.0.0",
+    "wait-on": "^7.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.4.0"
+  },
+  "build": {
+    "appId": "com.yourcompany.configurator-app",
+    "productName": "Configurator App",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "frontend/**/*",
+      "node_modules/**/*"
+    ],
+    "extraFiles": [
+      {
+        "from": "backend",
+        "to": "backend",
+        "filter": ["**/*", "!__pycache__", "!*.pyc"]
+      }
+    ]
+  }
+}
