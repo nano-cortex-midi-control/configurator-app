@@ -12,6 +12,20 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+# Predefined color mappings to hex codes
+PRESET_COLORS = {
+    'red': '#dc3545',
+    'blue': '#007bff', 
+    'green': '#28a745',
+    'yellow': '#ffc107',
+    'purple': '#6f42c1',
+    'orange': '#fd7e14',
+    'teal': '#20c997',
+    'pink': '#e83e8c',
+    'indigo': '#6610f2',
+    'cyan': '#17a2b8'
+}
+
 class SerialCommunicator:
     """Klasa za komunikaciju preko serial porta."""
     
@@ -99,42 +113,62 @@ class SerialCommunicator:
             logger.error(f"❌ Greška pri slanju konfiguracije: {e}")
             return False
     
-    def _create_midi_config(self, button_mappings):
+    def _get_hex_color(self, color, is_preset_color=True):
+        """Convert color to hex code."""
+        if not color:
+            return '#667eea'  # Default color
+            
+        if is_preset_color and color in PRESET_COLORS:
+            return PRESET_COLORS[color]
+        elif color.startswith('#') and len(color) == 7:
+            # Already a valid hex color
+            return color
+        else:
+            # Fallback to default color
+            return '#667eea'
+    
+    def _create_midi_config(self, all_button_data):
         """Kreira MIDI konfiguraciju na osnovu mapiranja tastera."""
         # Kreiraj osnovni template za svih 6 tastera
         switches = []
         
-        # Inicijalizuj sve tastere kao neaktivne
+        # Create a dictionary for easy lookup
+        button_dict = {data['button']: data for data in all_button_data}
+        
+        # Kreiraj konfiguraciju za svih 6 tastera
         for i in range(6):
-            switches.append({
+            button_num = i + 1  # Convert to 1-based numbering
+            button_data = button_dict.get(button_num, {})
+            
+            # Get color information
+            hex_color = self._get_hex_color(
+                button_data.get('color'), 
+                button_data.get('is_preset_color', True)
+            )
+            
+            # Check if button has a command mapped
+            has_command = button_data.get('command_name') is not None
+            
+            switch_config = {
                 "id": i,
-                "name": f"Neaktivan_{i+1}",
+                "name": button_data.get('command_name', f"Neaktivan_{button_num}"),
                 "channel": 1,
                 "cc": 20 + i,
-                "value": 0,
-                "enabled": False
-            })
+                "value": button_data.get('command_value', 0),
+                "enabled": has_command,
+                "color": hex_color
+            }
+            
+            switches.append(switch_config)
         
-        # Popuni mapirane tastere
-        for button_mapping in button_mappings:
-            button_id = button_mapping['button'] - 1  # Konvertuj u 0-based index (1-6 -> 0-5)
-            if 0 <= button_id < 6:  # Provjeri da li je u validnom opsegu
-                switches[button_id] = {
-                    "id": button_id,
-                    "name": button_mapping['command_name'],
-                    "channel": 1,
-                    "cc": 20 + button_id,
-                    "value": button_mapping['command_value'],
-                    "enabled": True
-                }
-        
-        # Kreiraj konačnu konfiguraciju - SAMO type i switches, bez dodatnih polja
+        # Kreiraj konačnu konfiguraciju
         config = {
             "type": "set_config",
             "switches": switches
         }
         
-        print(f"🔧 Kreirana MIDI konfiguracija sa {len([s for s in switches if s['enabled']])} aktivnih tastera")
+        enabled_count = len([s for s in switches if s['enabled']])
+        print(f"🔧 Kreirana MIDI konfiguracija sa {enabled_count} aktivnih tastera i bojama za svih 6 tastera")
         
         return config
     

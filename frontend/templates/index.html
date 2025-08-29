@@ -22,6 +22,9 @@
                         <button id="mapTab" class="tab-btn" data-tab="map">
                             <i class="fas fa-gamepad"></i> Map
                         </button>
+                        <button id="settingsTab" class="tab-btn" data-tab="settings">
+                            <i class="fas fa-cog"></i> Settings
+                        </button>
                     </div>
                     
                     <!-- USB Port Selection -->
@@ -87,7 +90,7 @@
                         <!-- Prvi red tastera -->
                         <div class="button-row">
                             <div class="button-mapping" data-button="1">
-                                <div class="button-circle">
+                                <div class="button-circle default-color" data-button="1">
                                     <span class="button-number">1</span>
                                 </div>
                                 <div class="button-label" id="buttonLabel1">Nije mapiran</div>
@@ -97,7 +100,7 @@
                             </div>
                             
                             <div class="button-mapping" data-button="2">
-                                <div class="button-circle">
+                                <div class="button-circle default-color" data-button="2">
                                     <span class="button-number">2</span>
                                 </div>
                                 <div class="button-label" id="buttonLabel2">Nije mapiran</div>
@@ -107,7 +110,7 @@
                             </div>
                             
                             <div class="button-mapping" data-button="3">
-                                <div class="button-circle">
+                                <div class="button-circle default-color" data-button="3">
                                     <span class="button-number">3</span>
                                 </div>
                                 <div class="button-label" id="buttonLabel3">Nije mapiran</div>
@@ -120,7 +123,7 @@
                         <!-- Drugi red tastera -->
                         <div class="button-row">
                             <div class="button-mapping" data-button="4">
-                                <div class="button-circle">
+                                <div class="button-circle default-color" data-button="4">
                                     <span class="button-number">4</span>
                                 </div>
                                 <div class="button-label" id="buttonLabel4">Nije mapiran</div>
@@ -130,7 +133,7 @@
                             </div>
                             
                             <div class="button-mapping" data-button="5">
-                                <div class="button-circle">
+                                <div class="button-circle default-color" data-button="5">
                                     <span class="button-number">5</span>
                                 </div>
                                 <div class="button-label" id="buttonLabel5">Nije mapiran</div>
@@ -140,7 +143,7 @@
                             </div>
                             
                             <div class="button-mapping" data-button="6">
-                                <div class="button-circle">
+                                <div class="button-circle default-color" data-button="6">
                                     <span class="button-number">6</span>
                                 </div>
                                 <div class="button-label" id="buttonLabel6">Nije mapiran</div>
@@ -148,6 +151,52 @@
                                     <option value="">Izaberite komandu...</option>
                                 </select>
                             </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Color Picker Popup Panel -->
+                    <div id="colorPickerPanel" class="color-picker-panel" style="display: none;">
+                        <div class="color-picker-header">
+                            <h4>Izaberite boju za taster <span id="colorPickerButtonNumber"></span></h4>
+                            <button class="color-picker-close">&times;</button>
+                        </div>
+                        <div class="color-picker-content">
+                            <div class="color-presets">
+                                <div class="color-preset" data-color="red" style="background-color: var(--color-red);" title="Crvena"></div>
+                                <div class="color-preset" data-color="blue" style="background-color: var(--color-blue);" title="Plava"></div>
+                                <div class="color-preset" data-color="green" style="background-color: var(--color-green);" title="Zelena"></div>
+                                <div class="color-preset" data-color="yellow" style="background-color: var(--color-yellow);" title="Žuta"></div>
+                                <div class="color-preset" data-color="purple" style="background-color: var(--color-purple);" title="Ljubičasta"></div>
+                                <div class="color-preset" data-color="orange" style="background-color: var(--color-orange);" title="Narandžasta"></div>
+                                <div class="color-preset" data-color="teal" style="background-color: var(--color-teal);" title="Teal"></div>
+                                <div class="color-preset" data-color="pink" style="background-color: var(--color-pink);" title="Roze"></div>
+                                <div class="color-preset" data-color="indigo" style="background-color: var(--color-indigo);" title="Indigo"></div>
+                                <div class="color-preset" data-color="cyan" style="background-color: var(--color-cyan);" title="Cijan"></div>
+                            </div>
+                            <div class="custom-color-section">
+                                <label for="customColorPicker">Prilagođena boja:</label>
+                                <input type="color" id="customColorPicker" class="custom-color-input">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Tab Content -->
+            <section id="settingsContent" class="tab-content">
+                <div class="settings-panel">
+                    <div class="panel-header">
+                        <h2>Podešavanja</h2>
+                        <div class="settings-info">
+                            Ovdje će biti dodane opcije za podešavanje aplikacije
+                        </div>
+                    </div>
+                    
+                    <div class="settings-content">
+                        <!-- Settings content will be added here in the future -->
+                        <div class="empty-state">
+                            <i class="fas fa-tools"></i>
+                            <p>Podešavanja će biti dostupna u budućim verzijama</p>
                         </div>
                     </div>
                 </div>

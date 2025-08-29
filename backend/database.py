@@ -33,16 +33,30 @@ class DatabaseManager:
                 )
             ''')
             
-            # Tabela za mapiranje tastera
+            # Kreacija tabele za mapiranje tastera
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS button_mappings (
-                    button_number INTEGER PRIMARY KEY CHECK(button_number >= 1 AND button_number <= 6),
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    button_number INTEGER UNIQUE NOT NULL,
                     command_id INTEGER,
+                    color TEXT DEFAULT NULL,
+                    is_preset_color BOOLEAN DEFAULT TRUE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (command_id) REFERENCES commands (id) ON DELETE SET NULL
                 )
             ''')
+            
+            # Dodaj kolone za boju ako ne postoje (migration)
+            try:
+                cursor.execute('ALTER TABLE button_mappings ADD COLUMN color TEXT DEFAULT NULL')
+            except sqlite3.OperationalError:
+                pass  # Kolona već postoji
+            
+            try:
+                cursor.execute('ALTER TABLE button_mappings ADD COLUMN is_preset_color BOOLEAN DEFAULT TRUE')
+            except sqlite3.OperationalError:
+                pass  # Kolona već postoji
             
             # Inicijalizuj mapiranje tastera ako ne postoji
             for i in range(1, 7):

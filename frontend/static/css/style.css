@@ -273,24 +273,6 @@ body {
     min-width: 200px;
 }
 
-.button-circle {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.button-circle:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
 .button-number {
     color: white;
     font-size: 1.5rem;
@@ -690,4 +672,214 @@ body {
     .button-number {
         font-size: 1.2rem;
     }
+}
+
+/* Color Controls - Updated for popup panel */
+.button-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    position: relative;
+}
+
+.button-circle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+/* Color Picker Panel */
+.color-picker-panel {
+    position: fixed;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    z-index: 1000;
+    min-width: 280px;
+    max-width: 320px;
+}
+
+.color-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px 12px 0 0;
+}
+
+.color-picker-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.color-picker-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s ease;
+}
+
+.color-picker-close:hover {
+    background-color: rgba(255,255,255,0.2);
+}
+
+.color-picker-content {
+    padding: 1.5rem;
+}
+
+.color-picker-panel .color-presets {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.color-picker-panel .color-preset {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid #ddd;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.color-picker-panel .color-preset:hover {
+    transform: scale(1.1);
+    border-color: #007bff;
+}
+
+.color-picker-panel .color-preset.active {
+    border-color: #007bff;
+    border-width: 4px;
+}
+
+.color-picker-panel .color-preset.active::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+}
+
+.custom-color-section {
+    border-top: 1px solid #eee;
+    padding-top: 1rem;
+}
+
+.custom-color-section label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.color-picker-panel .custom-color-input {
+    width: 100%;
+    height: 50px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 0;
+    background: none;
+}
+
+.color-picker-panel .custom-color-input::-webkit-color-swatch-wrapper {
+    padding: 3px;
+    border-radius: 6px;
+}
+
+.color-picker-panel .custom-color-input::-webkit-color-swatch {
+    border: none;
+    border-radius: 4px;
+}
+
+/* Ažuriranje button-circle da koristi dinamičke boje */
+.button-circle[data-color] {
+    background: var(--button-color);
+}
+
+.button-circle.default-color {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Predefined colors as CSS variables */
+:root {
+    --color-red: #dc3545;
+    --color-blue: #007bff;
+    --color-green: #28a745;
+    --color-yellow: #ffc107;
+    --color-purple: #6f42c1;
+    --color-orange: #fd7e14;
+    --color-teal: #20c997;
+    --color-pink: #e83e8c;
+    --color-indigo: #6610f2;
+    --color-cyan: #17a2b8;
+}
+
+/* Settings Panel */
+.settings-panel {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    overflow: hidden;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.settings-content {
+    padding: 2rem;
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.empty-state {
+    text-align: center;
+    color: #666;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: #ddd;
+    margin-bottom: 1rem;
+}
+
+.empty-state p {
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+.settings-info {
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
 }

@@ -73,25 +73,178 @@ class MIDIConfiguratorApp {
             });
         });
 
-        // Button mapping selects
-        for (let i = 1; i <= 6; i++) {
-            document.getElementById(`buttonSelect${i}`).addEventListener('change', (e) => {
-                this.updateButtonMapping(i, e.target.value);
+        // Button mapping select change
+        document.querySelectorAll('.command-select').forEach(select => {
+            select.addEventListener('change', (e) => {
+                const buttonNumber = e.target.dataset.button;
+                const commandId = e.target.value;
+                this.updateButtonMapping(buttonNumber, commandId);
             });
-        }
+        });
 
-        // Click outside modal to close
+        // Color picker event listeners
+        this.setupColorControls();
+    }
+
+    setupColorControls() {
+        // Add click event listeners to button circles to open color picker
+        document.querySelectorAll('.button-circle').forEach(circle => {
+            circle.addEventListener('click', (e) => {
+                const buttonNumber = e.currentTarget.dataset.button;
+                this.showColorPicker(buttonNumber, e.currentTarget);
+            });
+        });
+
+        // Color picker panel event listeners
+        const colorPickerPanel = document.getElementById('colorPickerPanel');
+        
+        // Close button
+        document.querySelector('.color-picker-close').addEventListener('click', () => {
+            this.hideColorPicker();
+        });
+        
+        // Predefined color preset clicks in the popup
+        colorPickerPanel.querySelectorAll('.color-preset').forEach(preset => {
+            preset.addEventListener('click', (e) => {
+                const color = e.target.dataset.color;
+                const buttonNumber = colorPickerPanel.dataset.buttonNumber;
+                
+                this.setButtonColor(buttonNumber, color, true);
+                this.hideColorPicker();
+            });
+        });
+
+        // Custom color picker in the popup
+        document.getElementById('customColorPicker').addEventListener('change', (e) => {
+            const customColor = e.target.value;
+            const buttonNumber = colorPickerPanel.dataset.buttonNumber;
+            
+            this.setButtonColor(buttonNumber, customColor, false);
+            this.hideColorPicker();
+        });
+        
+        // Close panel when clicking outside
         document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
-                this.closeModal(e.target);
+            if (!colorPickerPanel.contains(e.target) && 
+                !e.target.closest('.button-circle') && 
+                colorPickerPanel.style.display !== 'none') {
+                this.hideColorPicker();
             }
         });
+    }
 
-        // Form submission
-        document.getElementById('commandForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.saveCommand();
+    showColorPicker(buttonNumber, buttonElement) {
+        const colorPickerPanel = document.getElementById('colorPickerPanel');
+        const buttonNumberSpan = document.getElementById('colorPickerButtonNumber');
+        
+        // Set the button number in the panel
+        colorPickerPanel.dataset.buttonNumber = buttonNumber;
+        buttonNumberSpan.textContent = buttonNumber;
+        
+        // Reset active states
+        colorPickerPanel.querySelectorAll('.color-preset').forEach(preset => {
+            preset.classList.remove('active');
         });
+        
+        // Get current button mapping and highlight active color
+        const currentMapping = this.buttonMappings[buttonNumber];
+        if (currentMapping && currentMapping.color) {
+            if (currentMapping.is_preset) {
+                const activePreset = colorPickerPanel.querySelector(`[data-color="${currentMapping.color}"]`);
+                if (activePreset) {
+                    activePreset.classList.add('active');
+                }
+            } else {
+                // Set custom color picker value
+                document.getElementById('customColorPicker').value = currentMapping.color;
+            }
+        }
+        
+        // Position the panel next to the button
+        const buttonRect = buttonElement.getBoundingClientRect();
+        const panelWidth = 320; // Approximate panel width
+        const panelHeight = 350; // Approximate panel height
+        
+        let left = buttonRect.right + 20; // Position to the right of the button
+        let top = buttonRect.top;
+        
+        // Check if panel would go off-screen to the right
+        if (left + panelWidth > window.innerWidth) {
+            left = buttonRect.left - panelWidth - 20; // Position to the left instead
+        }
+        
+        // Check if panel would go off-screen at the bottom
+        if (top + panelHeight > window.innerHeight) {
+            top = window.innerHeight - panelHeight - 20;
+        }
+        
+        // Ensure panel doesn't go off-screen at the top
+        if (top < 20) {
+            top = 20;
+        }
+        
+        colorPickerPanel.style.left = `${left}px`;
+        colorPickerPanel.style.top = `${top}px`;
+        colorPickerPanel.style.display = 'block';
+    }
+
+    hideColorPicker() {
+        const colorPickerPanel = document.getElementById('colorPickerPanel');
+        colorPickerPanel.style.display = 'none';
+        delete colorPickerPanel.dataset.buttonNumber;
+    }
+
+    setButtonColor(buttonNumber, color, isPreset = true) {
+        const buttonCircle = document.querySelector(`[data-button="${buttonNumber}"].button-circle`);
+        
+        if (!buttonCircle) return;
+        
+        // Remove all color classes
+        buttonCircle.className = 'button-circle';
+        
+        if (isPreset) {
+            // Set predefined color
+            buttonCircle.style.setProperty('--button-color', `var(--color-${color})`);
+            buttonCircle.setAttribute('data-color', color);
+        } else {
+            // Set custom color
+            buttonCircle.style.setProperty('--button-color', color);
+            buttonCircle.setAttribute('data-color', 'custom');
+            buttonCircle.setAttribute('data-custom-color', color);
+        }
+        
+        // Save color to button mapping
+        if (!this.buttonMappings[buttonNumber]) {
+            this.buttonMappings[buttonNumber] = {};
+        }
+        this.buttonMappings[buttonNumber].color = color;
+        this.buttonMappings[buttonNumber].is_preset = isPreset;
+        
+        // Save to backend
+        this.saveButtonColor(buttonNumber, color, isPreset);
+    }
+
+    async saveButtonColor(buttonNumber, color, isPreset) {
+        try {
+            const response = await fetch('http://localhost:5001/api/button-mappings/color', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    button_number: parseInt(buttonNumber),
+                    color: color,
+                    is_preset: isPreset
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Greška pri čuvanju boje');
+            }
+        } catch (error) {
+            console.error('Greška pri čuvanju boje:', error);
+            this.showToast('Greška pri čuvanju boje dugmeta', 'error');
+        }
     }
 
     setupElectronListeners() {
@@ -453,7 +606,8 @@ class MIDIConfiguratorApp {
                 
                 // Ukloni iz mapiranja dugmića
                 Object.keys(this.buttonMappings).forEach(button => {
-                    if (this.buttonMappings[button] === commandId) {
+                    const mapping = this.buttonMappings[button];
+                    if (mapping && mapping.command_id === commandId) {
                         this.updateButtonMapping(button, '');
                     }
                 });
@@ -488,7 +642,8 @@ class MIDIConfiguratorApp {
 
     renderButtonMappings() {
         for (let i = 1; i <= 6; i++) {
-            const commandId = this.buttonMappings[i];
+            const mapping = this.buttonMappings[i];
+            const commandId = mapping ? mapping.command_id : null;
             const select = document.getElementById(`buttonSelect${i}`);
             const label = document.getElementById(`buttonLabel${i}`);
             
@@ -504,19 +659,32 @@ class MIDIConfiguratorApp {
                 if (select) select.value = '';
                 if (label) label.textContent = 'Nije mapiran';
             }
+            
+            // Load button color if exists
+            if (mapping && mapping.color) {
+                this.setButtonColor(i, mapping.color, mapping.is_preset);
+            }
         }
         this.updateStatusBar();
     }
 
     updateButtonMapping(buttonNumber, commandId) {
         if (commandId) {
-            this.buttonMappings[buttonNumber] = parseInt(commandId);
+            if (!this.buttonMappings[buttonNumber]) {
+                this.buttonMappings[buttonNumber] = {};
+            }
+            this.buttonMappings[buttonNumber].command_id = parseInt(commandId);
+            
             const command = this.commands.find(c => c.id == commandId);
             if (command) {
                 document.getElementById(`buttonLabel${buttonNumber}`).textContent = command.name;
             }
         } else {
-            delete this.buttonMappings[buttonNumber];
+            if (this.buttonMappings[buttonNumber]) {
+                this.buttonMappings[buttonNumber].command_id = null;
+            } else {
+                this.buttonMappings[buttonNumber] = { command_id: null };
+            }
             document.getElementById(`buttonLabel${buttonNumber}`).textContent = 'Nije mapiran';
         }
         
@@ -529,12 +697,21 @@ class MIDIConfiguratorApp {
 
     async saveButtonMappings() {
         try {
+            // Konvertuj u format koji backend očekuje (button_number: command_id)
+            const mappingsToSave = {};
+            Object.keys(this.buttonMappings).forEach(buttonNum => {
+                const mapping = this.buttonMappings[buttonNum];
+                if (mapping && mapping.command_id) {
+                    mappingsToSave[buttonNum] = mapping.command_id;
+                }
+            });
+            
             const response = await fetch('http://localhost:5001/api/button-mappings', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(this.buttonMappings)
+                body: JSON.stringify(mappingsToSave)
             });
 
             const result = await response.json();
@@ -551,7 +728,11 @@ class MIDIConfiguratorApp {
     updateConfigureButton() {
         const btn = document.getElementById('configureBtn');
         const hasPort = this.selectedUSBPort;
-        const hasMappings = Object.keys(this.buttonMappings).length > 0;
+        
+        // Provjeri da li ima mappings sa command_id
+        const hasMappings = Object.values(this.buttonMappings).some(mapping => 
+            mapping && mapping.command_id
+        );
         
         btn.disabled = !hasPort || !hasMappings;
     }

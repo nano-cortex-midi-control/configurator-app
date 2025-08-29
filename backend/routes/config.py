@@ -31,24 +31,43 @@ def send_configuration():
         
         with db_manager.get_connection() as conn:
             cursor = conn.cursor()
+            
+            # Get all button mappings with their colors (including unmapped buttons)
             cursor.execute('''
                 SELECT 
                     bm.button_number,
                     c.name as command_name,
-                    c.value as command_value
+                    c.value as command_value,
+                    bm.color,
+                    bm.is_preset_color
                 FROM button_mappings bm
                 LEFT JOIN commands c ON bm.command_id = c.id
-                WHERE bm.command_id IS NOT NULL
                 ORDER BY bm.button_number ASC
             ''')
             
-            button_mappings = []
+            all_button_data = {}
             for row in cursor.fetchall():
-                button_mappings.append({
+                all_button_data[row['button_number']] = {
                     'button': row['button_number'],
                     'command_name': row['command_name'],
-                    'command_value': row['command_value']
-                })
+                    'command_value': row['command_value'],
+                    'color': row['color'],
+                    'is_preset_color': bool(row['is_preset_color']) if row['is_preset_color'] is not None else True
+                }
+            
+            # Ensure we have data for all 6 buttons
+            for i in range(1, 7):
+                if i not in all_button_data:
+                    all_button_data[i] = {
+                        'button': i,
+                        'command_name': None,
+                        'command_value': None,
+                        'color': None,
+                        'is_preset_color': True
+                    }
+            
+            # Get only mapped buttons for the old logic compatibility
+            button_mappings = [data for data in all_button_data.values() if data['command_name'] is not None]
             
             if not button_mappings:
                 return jsonify({
@@ -56,15 +75,15 @@ def send_configuration():
                     'error': 'Nema mapiranih tastera za slanje'
                 }), 400
             
-            # Poveži se sa serial portom
+                        # Connect to the specified USB port
             if not serial_comm.connect(usb_port):
                 return jsonify({
                     'success': False,
-                    'error': f'Greška pri povezivanju sa portom {usb_port}'
-                }), 500
+                    'error': f'Nije moguće povezati se sa portom {usb_port}'
+                }), 400
             
-            # Pošalji konfiguraciju
-            success = serial_comm.send_configuration(button_mappings)
+            # Send configuration with all button data (including colors)
+            success = serial_comm.send_configuration(list(all_button_data.values()))
             
             if success:
                 # Pokušaj da pročitaš odgovor (neobavezno)
