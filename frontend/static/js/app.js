@@ -459,16 +459,30 @@ class MIDIConfiguratorApp {
             if (result.success) {
                 this.renderUSBPorts(result.data);
                 
-                // Prikaži poruku ako nema portova
-                if (result.message) {
-                    this.showToast(result.message, 'warning');
+                // Automatski izaberi MIDI uređaj
+                if (result.auto_selected) {
+                    this.selectedUSBPort = result.auto_selected;
+                    document.getElementById('usbPortSelect').value = result.auto_selected;
+                    this.updateConfigureButton();
+                    this.updateStatusBar();
+                    
+                    // Prikaži poruku o automatskom izboru
+                    if (result.midi_count > 0) {
+                        this.showToast(`Automatski izabran MIDI uređaj: ${result.auto_selected}`, 'success');
+                    }
                 }
                 
-                // Automatski refresh USB portova svakih 5 sekundi
+                // Prikaži poruku ako nema portova ili nema MIDI uređaja
+                if (result.message) {
+                    const messageType = result.midi_count > 0 ? 'info' : 'warning';
+                    this.showToast(result.message, messageType);
+                }
+                
+                // Automatski refresh USB portova svakih 30 sekundi (smanjeno zbog cache-a)
                 if (!this.usbRefreshInterval) {
                     this.usbRefreshInterval = setInterval(() => {
                         this.refreshUSBPorts();
-                    }, 5000);
+                    }, 30000);
                 }
             } else {
                 this.showToast('Greška pri učitavanju USB portova: ' + result.error, 'error');
@@ -479,33 +493,47 @@ class MIDIConfiguratorApp {
             
             // Fallback - dodaj test portove
             this.renderUSBPorts([
-                { id: 'COM1', name: 'COM1 - Test Port 1' },
-                { id: 'COM2', name: 'COM2 - Test Port 2' }
+                { id: 'COM1', name: 'COM1 - Test Port 1', enabled: false },
+                { id: 'COM2', name: 'COM2 - Test Port 2', enabled: false }
             ]);
         }
     }
 
     async refreshUSBPorts() {
         try {
-            const response = await fetch('http://localhost:5001/api/usb-ports');
+            const response = await fetch('http://localhost:5001/api/usb-ports/refresh', {
+                method: 'POST'
+            });
             const result = await response.json();
             
             if (result.success) {
-                const currentSelection = document.getElementById('usbPortSelect').value;
+                const currentSelection = this.selectedUSBPort;
                 this.renderUSBPorts(result.data);
                 
-                // Pokušaj da zadržiš trenutnu selekciju
-                if (currentSelection) {
-                    const select = document.getElementById('usbPortSelect');
-                    const option = Array.from(select.options).find(opt => opt.value === currentSelection);
-                    if (option) {
-                        select.value = currentSelection;
-                    } else {
-                        // Port je nestao, resetuj selekciju
-                        this.selectedUSBPort = null;
-                        this.updateConfigureButton();
-                        this.updateStatusBar();
-                        this.showToast(`USB port ${currentSelection} više nije dostupan`, 'warning');
+                // Provjeri da li je trenutno izabrani port još uvijek dostupan
+                const currentPort = result.data.find(port => port.id === currentSelection);
+                
+                if (currentSelection && currentPort && currentPort.enabled) {
+                    // Zadržaj trenutnu selekciju
+                    document.getElementById('usbPortSelect').value = currentSelection;
+                } else if (result.auto_selected) {
+                    // Automatski izaberi novi MIDI uređaj
+                    this.selectedUSBPort = result.auto_selected;
+                    document.getElementById('usbPortSelect').value = result.auto_selected;
+                    this.updateConfigureButton();
+                    this.updateStatusBar();
+                    
+                    if (currentSelection !== result.auto_selected) {
+                        this.showToast(`Automatski prebačeno na: ${result.auto_selected}`, 'info');
+                    }
+                } else {
+                    // Nema dostupnih MIDI uređaja
+                    this.selectedUSBPort = null;
+                    this.updateConfigureButton();
+                    this.updateStatusBar();
+                    
+                    if (currentSelection) {
+                        this.showToast(`MIDI uređaj ${currentSelection} više nije dostupan`, 'warning');
                     }
                 }
             }
@@ -584,6 +612,27 @@ class MIDIConfiguratorApp {
             const option = document.createElement('option');
             option.value = port.id;
             option.textContent = port.name;
+            
+            // Označi MIDI uređaje drugačije
+            if (port.is_midi) {
+                option.style.fontWeight = 'bold';
+                option.style.color = '#007bff';
+            }
+            
+            // Onemogući non-MIDI portove
+            if (port.enabled === false) {
+                option.disabled = true;
+                option.style.color = '#999';
+                option.style.fontStyle = 'italic';
+            }
+            
+            // Dodaj dodatne informacije za MIDI uređaje
+            if (port.is_verified && port.response_time) {
+                option.title = `MIDI uređaj verifikovan (${port.response_time}ms)`;
+            } else if (!port.enabled) {
+                option.title = 'Nije MIDI uređaj - onemogućen';
+            }
+            
             select.appendChild(option);
         });
     }

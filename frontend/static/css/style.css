@@ -697,7 +697,28 @@ body {
     box-shadow: 0 6px 20px rgba(0,0,0,0.3);
 }
 
-/* Color Picker Panel */
+/* USB Port Selection Styling */
+#usbPortSelect {
+    font-family: inherit;
+    font-size: 14px;
+}
+
+#usbPortSelect option[disabled] {
+    color: #999 !important;
+    font-style: italic;
+    background-color: #f5f5f5;
+}
+
+#usbPortSelect option:not([disabled]) {
+    color: #333;
+}
+
+/* MIDI Device Styling */
+#usbPortSelect option[style*="font-weight: bold"] {
+    background-color: #e7f3ff;
+}
+
+/* Color Picker Panel Styles */
 .color-picker-panel {
     position: fixed;
     background: white;

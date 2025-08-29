@@ -21,56 +21,29 @@ class USBPortDetector:
         self.system = platform.system().lower()
         self.verified_ports = {}  # Cache za verifikovane portove
         self.verification_timeout = 3  # Timeout za verifikaciju u sekundama
-        self.cache_duration = 300  # Cache vrijedi 5 minuta (300 sekundi)
-        self.last_port_scan = None  # Vrijeme zadnjeg skeniranja portova
-        self.known_ports = set()  # Skup poznatih portova za praćenje promjena
     
     def get_available_ports(self):
         """Vrati sve dostupne serijske portove sa verifikacijom."""
         ports = []
-        current_time = datetime.now()
         
         try:
             # Dohvati sve dostupne portove
             available_ports = serial.tools.list_ports.comports()
-            current_port_ids = set()
             
             for port in available_ports:
-                # Filtriraj portove bez povezanih uređaja
-                if not self._has_connected_device(port):
-                    logger.debug(f"Preskačem port {port.device} - nema povezan uređaj")
-                    continue
-                
-                current_port_ids.add(port.device)
                 port_info = self._parse_port_info(port)
                 if port_info:
-                    # Provjeri da li je port nov ili se cache istekao
-                    needs_verification = self._needs_verification(port.device, current_time)
-                    
-                    if needs_verification:
-                        logger.debug(f"Vršim verifikaciju porta {port.device}")
-                        verification_result = self.verify_midi_device(port.device)
-                        port_info.update(verification_result)
-                    else:
-                        # Koristi cached rezultat
-                        cached_result = self.verified_ports[port.device]['result']
-                        port_info.update(cached_result)
-                        logger.debug(f"Koristim cached rezultat za port {port.device}: {cached_result['status']}")
+                    # Pokušaj verifikaciju MIDI uređaja
+                    verification_result = self.verify_midi_device(port.device)
+                    port_info.update(verification_result)
                     
                     ports.append(port_info)
-            
-            # Ukloni iz cache portove koji više nisu dostupni
-            self._cleanup_cache(current_port_ids)
-            
-            # Ažuriraj poznate portove
-            self.known_ports = current_port_ids
-            self.last_port_scan = current_time
+                    logger.debug(f"Port {port.device}: {port_info['status']}")
             
             # Sortiraj portove - MIDI uređaji na vrh, zatim ostali
             ports.sort(key=lambda x: (not x['is_midi_device'], x['id']))
             
-            midi_count = len([p for p in ports if p['is_midi_device']])
-            logger.info(f"Pronađeno {len(ports)} portova sa povezanim uređajima, {midi_count} MIDI uređaja")
+            logger.info(f"Pronađeno {len(ports)} portova, {len([p for p in ports if p['is_midi_device']])} MIDI uređaja")
             return ports
             
         except Exception as e:
@@ -85,6 +58,13 @@ class USBPortDetector:
             'status': 'not_tested',
             'response_time': None
         }
+        
+        # Provjeri cache
+        if port in self.verified_ports:
+            cached = self.verified_ports[port]
+            # Cache je valjan 60 sekundi
+            if (datetime.now() - cached['timestamp']).seconds < 60:
+                return cached['result']
         
         try:
             # Pokušaj konekciju sa portom
@@ -145,68 +125,6 @@ class USBPortDetector:
         
         return result
     
-    def _needs_verification(self, port, current_time):
-        """Provjeri da li port treba verifikaciju."""
-        # Ako port nije u cache-u, treba verifikaciju
-        if port not in self.verified_ports:
-            return True
-        
-        # Provjeri da li je cache istekao
-        cached_entry = self.verified_ports[port]
-        time_diff = (current_time - cached_entry['timestamp']).total_seconds()
-        
-        if time_diff > self.cache_duration:
-            logger.debug(f"Cache za port {port} je istekao ({time_diff:.1f}s)")
-            return True
-        
-        return False
-    
-    def _cleanup_cache(self, current_port_ids):
-        """Ukloni iz cache portove koji više nisu dostupni."""
-        ports_to_remove = []
-        
-        for cached_port in self.verified_ports.keys():
-            if cached_port not in current_port_ids:
-                ports_to_remove.append(cached_port)
-        
-        for port in ports_to_remove:
-            del self.verified_ports[port]
-            logger.debug(f"Uklonjen iz cache port {port} - više nije dostupan")
-    
-    def _has_connected_device(self, port):
-        """Provjeri da li port ima povezan uređaj."""
-        # Provjeri hardware ID - prazni ili virtuelni portovi obično nemaju valjan HWID
-        if not port.hwid or port.hwid == "n/a":
-            return False
-            
-        # Filtriraj poznate virtuelne portove
-        virtual_indicators = [
-            "VID_0000&PID_0000",  # Dummy port
-            "BTHENUM",            # Bluetooth serial
-            "ROOT\\PORTS",        # Windows virtual ports
-            "ACPI\\PNP",          # ACPI enumerated ports
-        ]
-        
-        hwid_upper = port.hwid.upper()
-        for indicator in virtual_indicators:
-            if indicator in hwid_upper:
-                return False
-        
-        # Ako port nema ni manufacturer ni product, vjerovatno je prazan
-        if not port.manufacturer and not port.product:
-            # Ali dozvoli ako ima valjan HWID koji izgleda kao pravi USB uređaj
-            if "VID_" not in hwid_upper or "PID_" not in hwid_upper:
-                return False
-        
-        # Pokušaj kratku konekciju da vidiš da li port odgovara
-        try:
-            with serial.Serial(port.device, 9600, timeout=0.1) as ser:
-                # Ako možemo otvoriti port, vjerovatno ima uređaj
-                return True
-        except Exception:
-            # Port se ne može otvoriti, vjerovatno nema uređaj
-            return False
-    
     def _parse_port_info(self, port):
         """Parsira informacije o portu."""
         try:
@@ -264,37 +182,7 @@ class USBPortDetector:
     def clear_verification_cache(self):
         """Obriši cache verifikacije."""
         self.verified_ports.clear()
-        self.known_ports.clear()
-        self.last_port_scan = None
         logger.info("Cache verifikacije je obrisan")
-    
-    def has_port_changes(self):
-        """Provjeri da li su se portovi promijenili od zadnjeg skeniranja."""
-        try:
-            current_ports = set()
-            available_ports = serial.tools.list_ports.comports()
-            
-            for port in available_ports:
-                if self._has_connected_device(port):
-                    current_ports.add(port.device)
-            
-            # Provjeri da li se skup portova promijenio
-            if current_ports != self.known_ports:
-                new_ports = current_ports - self.known_ports
-                removed_ports = self.known_ports - current_ports
-                
-                if new_ports:
-                    logger.info(f"Novi portovi detektovani: {list(new_ports)}")
-                if removed_ports:
-                    logger.info(f"Portovi uklonjeni: {list(removed_ports)}")
-                
-                return True
-            
-            return False
-            
-        except Exception as e:
-            logger.error(f"Greška pri provjeri promjena portova: {e}")
-            return True  # U slučaju greške, forsiraj refresh
 
 # Globalna instanca USB detektora
 usb_detector = USBPortDetector()

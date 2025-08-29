@@ -124,28 +124,88 @@ def send_configuration():
 
 @config_bp.route('/api/usb-ports', methods=['GET'])
 def get_usb_ports():
-    """Vrati dostupne USB portove."""
+    """Vrati dostupne USB portove sa MIDI verifikacijom."""
     try:
-        # Dohvati stvarno dostupne USB/Serial portove
-        usb_ports = usb_detector.get_available_ports()
+        # Dohvati sve dostupne portove sa verifikacijom
+        all_ports = usb_detector.get_available_ports()
         
-        # Ako nema portova, vrati poruku
-        if not usb_ports:
-            logger.warning("Nema dostupnih USB/Serial portova")
-            return jsonify({
-                'success': True,
-                'data': [],
-                'message': 'Nema dostupnih USB/Serial portova. Provjerite da li je uređaj povezan.'
+        # Razdijeli na MIDI i ostale portove
+        midi_ports = [port for port in all_ports if port.get('is_midi_device')]
+        other_ports = [port for port in all_ports if not port.get('is_midi_device')]
+        
+        # Pripremi format portova za frontend
+        formatted_ports = []
+        
+        # Dodaj MIDI portove sa posebnim označavanjem
+        for port in midi_ports:
+            formatted_ports.append({
+                'id': port['id'],
+                'name': f"{port['id']} - MIDI",
+                'description': port['description'],
+                'is_midi': True,
+                'is_verified': port.get('is_verified', False),
+                'response_time': port.get('response_time'),
+                'enabled': True
             })
         
-        logger.info(f"Vraćeno {len(usb_ports)} USB portova")
-        return jsonify({
+        # Dodaj ostale portove kao disabled
+        for port in other_ports:
+            formatted_ports.append({
+                'id': port['id'],
+                'name': port['name'],
+                'description': port['description'],
+                'is_midi': False,
+                'is_verified': False,
+                'enabled': False
+            })
+        
+        # Automatski izaberi prvi MIDI port
+        auto_selected = None
+        if midi_ports:
+            auto_selected = midi_ports[0]['id']
+        
+        result = {
             'success': True,
-            'data': usb_ports
-        })
-    
+            'data': formatted_ports,
+            'auto_selected': auto_selected,
+            'midi_count': len(midi_ports),
+            'total_count': len(all_ports)
+        }
+        
+        if not all_ports:
+            result['message'] = 'Nema dostupnih USB/Serial portova. Provjerite da li je uređaj povezan.'
+        elif not midi_ports:
+            result['message'] = 'Pronađeni su portovi, ali nijedan nije MIDI uređaj.'
+        else:
+            result['message'] = f'Pronađeno {len(midi_ports)} MIDI uređaja od ukupno {len(all_ports)} portova.'
+        
+        logger.info(f"Vraćeno {len(formatted_ports)} portova, {len(midi_ports)} MIDI uređaja")
+        return jsonify(result)
+        
     except Exception as e:
         logger.error(f"Greška pri dohvatanju USB portova: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@config_bp.route('/api/usb-ports/refresh', methods=['POST'])
+def refresh_usb_ports():
+    """Osvježi listu USB portova samo ako su se portovi promijenili."""
+    try:
+        # Provjeri da li su se portovi promijenili
+        if usb_detector.has_port_changes():
+            logger.info("Detektovane promjene portova, vršim refresh")
+            # Obriši cache samo za uklonjene portove
+            # get_available_ports će automatski ažurirati cache
+        else:
+            logger.debug("Nema promjena portova, koristim postojeći cache")
+        
+        # Vrati ažuriranu listu (koristi cache gdje je moguće)
+        return get_usb_ports()
+        
+    except Exception as e:
+        logger.error(f"Greška pri osvježavanju USB portova: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
