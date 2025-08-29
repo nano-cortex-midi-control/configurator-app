@@ -22,6 +22,7 @@ from routes.commands import commands_bp
 from routes.mappings import mappings_bp
 from routes.config import config_bp
 from routes.frontend import frontend_bp
+from routes.presets import presets_bp
 
 def create_app():
     """Factory funkcija za kreiranje Flask aplikacije."""
@@ -38,6 +39,7 @@ def create_app():
     app.register_blueprint(commands_bp)
     app.register_blueprint(mappings_bp)
     app.register_blueprint(config_bp)
+    app.register_blueprint(presets_bp)
     app.register_blueprint(frontend_bp)
     
     # Registruj error handlers

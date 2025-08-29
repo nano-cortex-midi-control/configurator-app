@@ -883,3 +883,99 @@ body {
     font-size: 0.9rem;
     margin-top: 0.5rem;
 }
+
+/* Preset Controls */
+.preset-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.presets-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.preset-item {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    background: #f9f9f9;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.preset-item:hover {
+    background: #f0f0f0;
+    border-color: #007bff;
+}
+
+.preset-item.selected {
+    background: #e3f2fd;
+    border-color: #007bff;
+}
+
+.preset-name {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: #333;
+}
+
+.preset-description {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+.preset-meta {
+    font-size: 0.8rem;
+    color: #999;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.preset-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.preset-actions button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.preset-load-btn {
+    background: #007bff;
+    color: white;
+}
+
+.preset-load-btn:hover {
+    background: #0056b3;
+}
+
+.preset-delete-btn {
+    background: #dc3545;
+    color: white;
+}
+
+.preset-delete-btn:hover {
+    background: #c82333;
+}
+
+.empty-presets {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+}
+
+.empty-presets i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #ccc;
+}

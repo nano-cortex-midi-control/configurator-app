@@ -84,6 +84,26 @@ class MIDIConfiguratorApp {
 
         // Color picker event listeners
         this.setupColorControls();
+        
+        // Preset management event listeners
+        this.setupPresetControls();
+    }
+
+    setupPresetControls() {
+        // Save preset button
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            this.showSavePresetModal();
+        });
+
+        // Load preset button
+        document.getElementById('loadPresetBtn').addEventListener('click', () => {
+            this.showLoadPresetModal();
+        });
+
+        // Save preset confirm button
+        document.getElementById('savePresetConfirmBtn').addEventListener('click', () => {
+            this.savePreset();
+        });
     }
 
     setupColorControls() {
@@ -192,6 +212,159 @@ class MIDIConfiguratorApp {
         const colorPickerPanel = document.getElementById('colorPickerPanel');
         colorPickerPanel.style.display = 'none';
         delete colorPickerPanel.dataset.buttonNumber;
+    }
+
+    // Preset Management
+    showSavePresetModal() {
+        const modal = document.getElementById('savePresetModal');
+        
+        // Reset form
+        document.getElementById('savePresetForm').reset();
+        
+        // Show modal
+        modal.style.display = 'block';
+    }
+
+    async showLoadPresetModal() {
+        const modal = document.getElementById('loadPresetModal');
+        
+        // Load presets
+        await this.loadPresets();
+        
+        // Show modal
+        modal.style.display = 'block';
+    }
+
+    async savePreset() {
+        try {
+            const name = document.getElementById('presetName').value.trim();
+            const description = document.getElementById('presetDescription').value.trim();
+
+            if (!name) {
+                this.showToast('Naziv preset-a je obavezan', 'error');
+                return;
+            }
+
+            const response = await fetch('http://localhost:5001/api/presets', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: name,
+                    description: description
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showToast(result.message, 'success');
+                this.closeModal(document.getElementById('savePresetModal'));
+            } else {
+                this.showToast(`Greška: ${result.error}`, 'error');
+            }
+
+        } catch (error) {
+            console.error('Greška pri čuvanju preset-a:', error);
+            this.showToast('Greška pri čuvanju preset-a', 'error');
+        }
+    }
+
+    async loadPresets() {
+        try {
+            const response = await fetch('http://localhost:5001/api/presets');
+            const result = await response.json();
+
+            if (result.success) {
+                this.renderPresets(result.data);
+            } else {
+                this.showToast(`Greška pri učitavanju preset-ova: ${result.error}`, 'error');
+            }
+
+        } catch (error) {
+            console.error('Greška pri učitavanju preset-ova:', error);
+            this.showToast('Greška pri učitavanju preset-ova', 'error');
+        }
+    }
+
+    renderPresets(presets) {
+        const presetsList = document.getElementById('presetsList');
+        
+        if (presets.length === 0) {
+            presetsList.innerHTML = `
+                <div class="empty-presets">
+                    <i class="fas fa-folder-open"></i>
+                    <p>Nema sačuvanih preset-ova</p>
+                </div>
+            `;
+            return;
+        }
+
+        presetsList.innerHTML = presets.map(preset => `
+            <div class="preset-item" data-preset-id="${preset.id}">
+                <div class="preset-name">${preset.name}</div>
+                <div class="preset-description">${preset.description || 'Nema opisa'}</div>
+                <div class="preset-meta">
+                    <span>Kreiran: ${new Date(preset.created_at).toLocaleDateString('sr-RS')}</span>
+                    <div class="preset-actions">
+                        <button class="preset-load-btn" onclick="app.loadPreset(${preset.id})">
+                            <i class="fas fa-download"></i> Učitaj
+                        </button>
+                        <button class="preset-delete-btn" onclick="app.deletePreset(${preset.id}, '${preset.name}')">
+                            <i class="fas fa-trash"></i> Obriši
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async loadPreset(presetId) {
+        try {
+            const response = await fetch(`http://localhost:5001/api/presets/${presetId}`);
+            const result = await response.json();
+
+            if (result.success) {
+                this.showToast(result.message, 'success');
+                this.closeModal(document.getElementById('loadPresetModal'));
+                
+                // Reload button mappings to reflect the changes
+                this.loadButtonMappings();
+                
+            } else {
+                this.showToast(`Greška: ${result.error}`, 'error');
+            }
+
+        } catch (error) {
+            console.error('Greška pri učitavanju preset-a:', error);
+            this.showToast('Greška pri učitavanju preset-a', 'error');
+        }
+    }
+
+    async deletePreset(presetId, presetName) {
+        if (!confirm(`Da li ste sigurni da želite obrisati preset "${presetName}"?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:5001/api/presets/${presetId}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showToast(result.message, 'success');
+                this.loadPresets(); // Refresh the list
+            } else {
+                this.showToast(`Greška: ${result.error}`, 'error');
+            }
+
+        } catch (error) {
+            console.error('Greška pri brisanju preset-a:', error);
+            this.showToast('Greška pri brisanju preset-a', 'error');
+        }
     }
 
     setButtonColor(buttonNumber, color, isPreset = true) {

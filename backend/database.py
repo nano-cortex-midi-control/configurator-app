@@ -65,6 +65,18 @@ class DatabaseManager:
                     VALUES (?, NULL)
                 ''', (i,))
             
+            # Tabela za preset konfiguracije
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS presets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL UNIQUE,
+                    description TEXT DEFAULT '',
+                    config_data TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
             conn.commit()
             logger.info("Baza podataka je inicijalizovana")
     

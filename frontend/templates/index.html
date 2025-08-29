@@ -84,6 +84,14 @@
                         <div class="map-info">
                             Izaberite komande za svaki od 6 tastera
                         </div>
+                        <div class="preset-controls">
+                            <button id="savePresetBtn" class="btn btn-secondary">
+                                <i class="fas fa-save"></i> Sačuvaj preset
+                            </button>
+                            <button id="loadPresetBtn" class="btn btn-secondary">
+                                <i class="fas fa-folder-open"></i> Učitaj preset
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="button-grid">
@@ -226,6 +234,50 @@
             <div class="modal-footer">
                 <button id="saveCommandBtn" class="btn btn-primary">Sačuvaj</button>
                 <button class="btn btn-secondary modal-close">Otkaži</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Save Preset -->
+    <div id="savePresetModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Sačuvaj preset konfiguraciju</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="savePresetForm">
+                    <div class="form-group">
+                        <label for="presetName">Naziv preset-a:</label>
+                        <input type="text" id="presetName" name="name" required placeholder="npr. Studio Setup">
+                    </div>
+                    <div class="form-group">
+                        <label for="presetDescription">Opis (opciono):</label>
+                        <textarea id="presetDescription" name="description" placeholder="Kratak opis konfiguracije..." rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="savePresetConfirmBtn" class="btn btn-primary">Sačuvaj</button>
+                <button class="btn btn-secondary modal-close">Otkaži</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Load Preset -->
+    <div id="loadPresetModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Učitaj preset konfiguraciju</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="presets-list" id="presetsList">
+                    <!-- Presets will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-close">Zatvori</button>
             </div>
         </div>
     </div>
