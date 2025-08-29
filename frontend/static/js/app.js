@@ -5,7 +5,41 @@ class MIDIConfiguratorApp {
         this.buttonMappings = {};
         this.selectedUSBPort = null;
         this.currentEditingCommand = null;
-        this.init();
+        this.loadingScreen = document.getElementById('loadingScreen');
+        this.configLoadingPopup = document.getElementById('configLoadingPopup');
+        this.appContainer = document.getElementById('app');
+        
+        this.showLoadingScreen();
+    }
+
+    showLoadingScreen() {
+        // Prikaži loading screen na početku
+        this.loadingScreen.classList.remove('hidden');
+        this.appContainer.classList.add('hidden');
+        
+        // Sakrij loading screen nakon 5 sekundi
+        setTimeout(() => {
+            this.hideLoadingScreen();
+            this.init();
+        }, 5000);
+    }
+
+    hideLoadingScreen() {
+        this.loadingScreen.classList.add('hidden');
+        this.appContainer.classList.remove('hidden');
+    }
+
+    showConfigLoadingPopup() {
+        this.configLoadingPopup.classList.remove('hidden');
+        
+        // Sakrij popup nakon 3 sekunde
+        setTimeout(() => {
+            this.hideConfigLoadingPopup();
+        }, 3000);
+    }
+
+    hideConfigLoadingPopup() {
+        this.configLoadingPopup.classList.add('hidden');
     }
 
     init() {
@@ -969,6 +1003,9 @@ class MIDIConfiguratorApp {
             this.showToast('Morate mapirati barem jedan taster', 'warning');
             return;
         }
+
+        // Prikaži loading popup
+        this.showConfigLoadingPopup();
 
         const configData = {
             usbPort: this.selectedUSBPort

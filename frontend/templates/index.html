@@ -8,7 +8,34 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <div id="app">
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-content">
+            <div class="logo-container">
+                <i class="fas fa-music logo-icon"></i>
+                <h1 class="app-title">MIDI Configurator</h1>
+                <p class="app-subtitle">Professional MIDI Control Solution</p>
+            </div>
+            <div class="loading-animation">
+                <div class="spinner"></div>
+                <p class="loading-text">Učitavanje aplikacije...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Loading Popup -->
+    <div id="configLoadingPopup" class="config-loading-popup hidden">
+        <div class="popup-content">
+            <div class="config-animation">
+                <i class="fas fa-cog config-icon"></i>
+                <h3>Konfigurisanje</h3>
+                <div class="config-spinner"></div>
+                <p>Molimo sačekajte...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="app" class="hidden">
         <!-- Header -->
         <header class="header">
             <div class="header-content">
