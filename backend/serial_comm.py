@@ -153,7 +153,7 @@ class SerialCommunicator:
                 "id": i,
                 "name": button_data.get('command_name', f"Neaktivan_{button_num}"),
                 "channel": 1,
-                "cc": 20 + i,
+                "cc": button_data.get('command_value', 0),
                 "value": button_data.get('command_value', 0),
                 "enabled": has_command,
                 "color": hex_color
