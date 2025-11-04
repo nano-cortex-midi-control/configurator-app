@@ -1,3 +1,14 @@
+## Preuzimanje i pokretanje
+
+- Ubuntu/Linux (AppImage): https://github.com/nano-cortex-midi-control/configurator-app/releases/download/linux/MIDI.Configurator-1.0.0.AppImage
+- Windows: (bez linka)
+
+Pokretanje na Linuxu (potreban flag):
+
+```bash
+./MIDI\ Configurator-1.0.0.AppImage --no-sandbox
+```
+
 # MIDI Configurator Desktop App
 
 Desktop aplikacija za konfiguraciju MIDI kontrolera izgrađena sa Electron i Flask backendom.
