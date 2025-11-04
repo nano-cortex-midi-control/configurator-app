@@ -10,6 +10,8 @@
     "build-win": "electron-builder --win",
     "build-mac": "electron-builder --mac",
     "build-linux": "electron-builder --linux",
+    "build-backend": "bash build-scripts/build-backend.sh",
+    "build-linux-full": "npm run build-backend && electron-builder --linux",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "install-backend": "cd backend && pip install -r requirements.txt",
@@ -40,15 +42,18 @@
     "files": [
       "main.js",
       "preload.js",
-      "backend/**/*",
       "frontend/**/*",
       "assets/**/*",
       "package.json"
     ],
     "extraResources": [
       {
-        "from": "backend/",
-        "to": "backend/"
+        "from": "bundled-backend/build/app/",
+        "to": "backend-bin/"
+      },
+      {
+        "from": "frontend/",
+        "to": "frontend/"
       }
     ],
     "win": {

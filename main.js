@@ -10,36 +10,74 @@ let backendProcess;
 function startBackendServer() {
     const fs = require('fs');
     const isWindows = process.platform === 'win32';
-    const venvPath = path.join(__dirname, 'venv');
-    
-    // Check if virtual environment exists
-    if (!fs.existsSync(venvPath)) {
-        console.error('Virtual environment not found. Please run: python3 -m venv venv && source venv/bin/activate && pip install -r backend/requirements.txt');
-        return;
-    }
-    
-    const pythonExecutable = isWindows 
-        ? path.join(venvPath, 'Scripts', 'python.exe')
-        : path.join(venvPath, 'bin', 'python');
-    const backendPath = path.join(__dirname, 'backend', 'app.py');
-    
+
     console.log('Starting backend server...');
-    console.log('Python executable:', pythonExecutable);
-    console.log('Backend path:', backendPath);
-    
-    backendProcess = spawn(pythonExecutable, [backendPath], {
-        cwd: __dirname,
-        stdio: 'pipe'
-    });
-    
+
+    if (app.isPackaged) {
+        // In production, run bundled backend binary from resources
+        const backendDir = path.join(process.resourcesPath, 'backend-bin');
+        const backendExecutable = path.join(
+            backendDir,
+            isWindows ? 'app.exe' : 'app'
+        );
+
+        if (!fs.existsSync(backendExecutable)) {
+            console.error('Bundled backend binary not found at:', backendExecutable);
+            return;
+        }
+
+        try {
+            // Ensure executable permission on Unix-like systems
+            if (!isWindows) {
+                fs.chmodSync(backendExecutable, 0o755);
+            }
+        } catch (e) {
+            console.warn('Could not set executable permissions for backend binary:', e.message);
+        }
+
+        console.log('Running packaged backend:', backendExecutable);
+        backendProcess = spawn(backendExecutable, [], {
+            cwd: backendDir,
+            stdio: 'pipe',
+            env: {
+                ...process.env,
+                FRONTEND_DIR: path.join(process.resourcesPath, 'frontend'),
+                BACKEND_HOST: '127.0.0.1',
+                BACKEND_PORT: '5001',
+                BACKEND_DEBUG: '0'
+            }
+        });
+    } else {
+        // In development, run Python from local venv
+        const venvPath = path.join(__dirname, 'venv');
+        const pythonExecutable = isWindows
+            ? path.join(venvPath, 'Scripts', 'python.exe')
+            : path.join(venvPath, 'bin', 'python');
+        const backendPath = path.join(__dirname, 'backend', 'app.py');
+
+        if (!fs.existsSync(pythonExecutable)) {
+            console.error('Virtual environment not found. Please run:');
+            console.error('python3 -m venv venv && source venv/bin/activate && pip install -r backend/requirements.txt');
+            return;
+        }
+
+        console.log('Python executable:', pythonExecutable);
+        console.log('Backend path:', backendPath);
+
+        backendProcess = spawn(pythonExecutable, [backendPath], {
+            cwd: __dirname,
+            stdio: 'pipe'
+        });
+    }
+
     backendProcess.stdout.on('data', (data) => {
         console.log(`Backend: ${data}`);
     });
-    
+
     backendProcess.stderr.on('data', (data) => {
         console.error(`Backend Error: ${data}`);
     });
-    
+
     backendProcess.on('close', (code) => {
         console.log(`Backend process exited with code ${code}`);
     });
