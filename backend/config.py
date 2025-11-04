@@ -11,8 +11,11 @@ import logging
 # Base path resolution (supports PyInstaller and packaged Electron)
 _BASE_DIR = getattr(sys, '_MEIPASS', os.path.dirname(__file__))
 
-# Database configuration (defaults next to backend; consider moving to userData for persistence)
-DATABASE_PATH = os.path.join(os.path.dirname(__file__), 'database.db')
+# Database configuration (env override to support persistence in packaged app)
+DATABASE_PATH = os.environ.get(
+    'DB_PATH',
+    os.path.join(os.path.dirname(__file__), 'database.db')
+)
 
 # Logging configuration
 LOG_LEVEL = logging.INFO

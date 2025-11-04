@@ -35,6 +35,16 @@ function startBackendServer() {
             console.warn('Could not set executable permissions for backend binary:', e.message);
         }
 
+        // Persistent DB under Electron userData
+        const userDataDir = app.getPath('userData');
+        const dbPath = path.join(userDataDir, 'database.db');
+        try {
+            const dbDir = path.dirname(dbPath);
+            require('fs').mkdirSync(dbDir, { recursive: true });
+        } catch (e) {
+            console.warn('Could not ensure userData directory exists:', e.message);
+        }
+
         console.log('Running packaged backend:', backendExecutable);
         backendProcess = spawn(backendExecutable, [], {
             cwd: backendDir,
@@ -44,7 +54,8 @@ function startBackendServer() {
                 FRONTEND_DIR: path.join(process.resourcesPath, 'frontend'),
                 BACKEND_HOST: '127.0.0.1',
                 BACKEND_PORT: '5001',
-                BACKEND_DEBUG: '0'
+                BACKEND_DEBUG: '0',
+                DB_PATH: dbPath
             }
         });
     } else {

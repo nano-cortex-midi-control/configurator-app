@@ -5,6 +5,7 @@ Database management module for MIDI Configurator Backend
 """
 
 import sqlite3
+import os
 import logging
 from config import DATABASE_PATH
 
@@ -19,6 +20,10 @@ class DatabaseManager:
     
     def init_database(self):
         """Inicijalizuj tabele u bazi podataka."""
+        # Ensure parent directory exists for persistent DB locations
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             
